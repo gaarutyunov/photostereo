@@ -13,8 +13,8 @@ import {
   runOpenRouter, listImageModels, DEFAULT_MODEL,
 } from './engine-openrouter.js';
 import * as oauth from './oauth.js';
-import { anaglyph, sideBySide, wiggleFrames } from './compositor.js';
-import { canvasToPngBlob, encodeWiggle, download } from './exports.js';
+import { anaglyph } from './compositor.js';
+import { canvasToPngBlob, download } from './exports.js';
 import { CSS } from './styles.js';
 
 export class StereoConverter {
@@ -42,8 +42,6 @@ export class StereoConverter {
       parallax: 0.045,
       converge: 0.5,
       invert: false,
-      wiggleAmplitude: 1.0,
-      wiggleFps: 12,
       anaglyphMode: 'dubois',
     };
     this._sourceBitmap = null;
@@ -196,7 +194,7 @@ export class StereoConverter {
       left: bundle.left,
       right: bundle.right,
       depth: bundle.depth,
-      edited: bundle.edited, // present for AI custom-edit modes
+      edited: bundle.edited, // present for the AI engine
       engine: bundle.engine,
       exports: {
         async anaglyph(mode) {
@@ -204,32 +202,6 @@ export class StereoConverter {
             anaglyph(bundle.left, bundle.right, mode || self._params.anaglyphMode)
           );
         },
-        async sideBySide() {
-          return canvasToPngBlob(sideBySide(bundle.left, bundle.right));
-        },
-        async wiggle(opts = {}) {
-          const frames = await wiggleFrames({
-            left: bundle.left,
-            right: bundle.right,
-            colorCanvas: bundle.colorCanvas,
-            depthCanvas: bundle.depthCanvas,
-            parallax: bundle.params.parallax,
-            converge: bundle.params.converge,
-            invert: bundle.params.invert,
-            amplitude: opts.amplitude ?? self._params.wiggleAmplitude,
-            frames: opts.frames ?? 5,
-          });
-          const { blob } = await encodeWiggle(frames, {
-            fps: opts.fps ?? self._params.wiggleFps,
-            format: opts.format ?? 'auto',
-          });
-          return blob;
-        },
-        // depth PNG (local only, §2)
-        depthPng: bundle.depthCanvas
-          ? async () => canvasToPngBlob(bundle.depthCanvas)
-          : undefined,
-        // motionPhoto?(): added in M2 — intentionally absent in v1 (§2).
       },
     };
   }
@@ -273,8 +245,6 @@ export class StereoConverter {
       <div class="controls" id="controls">
         ${rangeRow('parallax', 'Depth strength', 0, 0.12, 0.005, this._params.parallax)}
         ${rangeRow('converge', 'Convergence', 0, 1, 0.02, this._params.converge)}
-        ${rangeRow('wiggleAmplitude', 'Wiggle amp.', 0.2, 1.5, 0.05, this._params.wiggleAmplitude)}
-        ${rangeRow('wiggleFps', 'Wiggle fps', 6, 24, 1, this._params.wiggleFps)}
         <div class="control">
           <label for="invert">Invert depth</label>
           <input type="checkbox" id="invert" />
@@ -407,8 +377,7 @@ export class StereoConverter {
       : '<b class="no">connect</b>';
     this.$.caps.innerHTML =
       `<span>Local: ${local}</span>` +
-      `<span>AI: ${ai}</span>` +
-      `<span>Wiggle: <b>${c.webcodecs ? 'MP4' : 'GIF'}</b></span>`;
+      `<span>AI: ${ai}</span>`;
   }
 
   _renderEngineToggle() {
@@ -567,14 +536,14 @@ export class StereoConverter {
     card.append(h);
 
     // AI engine: the model returns the finished 3D anaglyph — show it as-is
-    // with a PNG download, no compositor step.
+    // with a download, no compositor step.
     if (bundle.direct) {
       const cv = canvasFromBitmap(bundle.edited);
       cv.className = 'out';
       card.append(cv);
       const ex = document.createElement('div');
       ex.className = 'exports';
-      ex.append(btn('Download PNG', () => this._exportEdited(bundle)));
+      ex.append(btn('Download', () => this._exportEdited(bundle)));
       card.append(ex);
       return card;
     }
@@ -587,14 +556,7 @@ export class StereoConverter {
 
     const exports = document.createElement('div');
     exports.className = 'exports';
-    exports.append(
-      btn('Anaglyph PNG', () => this._exportAnaglyph(bundle)),
-      btn('Side-by-side PNG', () => this._exportSBS(bundle)),
-      btn('Wiggle ' + (this._caps.webcodecs ? 'MP4' : 'GIF'), () => this._exportWiggle(bundle)),
-    );
-    if (bundle.depthCanvas) {
-      exports.append(btn('Depth PNG', () => this._exportDepth(bundle)));
-    }
+    exports.append(btn('Download', () => this._exportAnaglyph(bundle)));
     card.append(exports);
 
     return card;
@@ -618,46 +580,10 @@ export class StereoConverter {
     });
   }
 
-  async _exportSBS(bundle) {
-    await this._withBusy('Encoding side-by-side…', async () => {
-      const blob = await canvasToPngBlob(sideBySide(bundle.left, bundle.right));
-      download(blob, `stereo-sbs-${bundle.engine}.png`);
-    });
-  }
-
-  async _exportDepth(bundle) {
-    await this._withBusy('Encoding depth…', async () => {
-      const blob = await canvasToPngBlob(bundle.depthCanvas);
-      download(blob, `stereo-depth-${bundle.engine}.png`);
-    });
-  }
-
   async _exportEdited(bundle) {
     await this._withBusy('Encoding image…', async () => {
       const blob = await canvasToPngBlob(canvasFromBitmap(bundle.edited));
-      const name = bundle.aiMode === 'anaglyph' ? 'ai-anaglyph.png' : 'ai-edited.png';
-      download(blob, name);
-    });
-  }
-
-  async _exportWiggle(bundle) {
-    await this._withBusy('Rendering wiggle…', async () => {
-      const frames = await wiggleFrames({
-        left: bundle.left,
-        right: bundle.right,
-        colorCanvas: bundle.colorCanvas,
-        depthCanvas: bundle.depthCanvas,
-        parallax: this._params.parallax,
-        converge: this._params.converge,
-        invert: this._params.invert,
-        amplitude: this._params.wiggleAmplitude,
-        frames: 5,
-      });
-      const { blob, format } = await encodeWiggle(frames, {
-        fps: this._params.wiggleFps,
-        format: 'auto',
-      });
-      download(blob, `stereo-wiggle-${bundle.engine}.${format}`);
+      download(blob, 'ai-anaglyph.png');
     });
   }
 
