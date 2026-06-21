@@ -17,6 +17,17 @@ function imageData(src) {
   return c.getContext('2d').getImageData(0, 0, c.width, c.height);
 }
 
+// Return image data for `src` scaled to exactly w×h (anaglyph requires the two
+// views to share dimensions; the AI engine's output may not match).
+function imageDataAt(src, w, h) {
+  if ((src.width === w && src.height === h)) return imageData(src);
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  c.getContext('2d').drawImage(src, 0, 0, w, h);
+  return c.getContext('2d').getImageData(0, 0, w, h);
+}
+
 // Dubois red/cyan matrices (CRT-calibrated default, §12). Linear-ish RGB.
 // L contributes mostly to the red channel, R to green+blue.
 const DUBOIS_L = [
@@ -41,8 +52,8 @@ function clamp8(v) {
  */
 export function anaglyph(left, right, mode = 'dubois') {
   const L = imageData(left);
-  const R = imageData(toCanvas(right)); // right may differ in size; assume equal
   const w = L.width, h = L.height;
+  const R = imageDataAt(toCanvas(right), w, h); // ensure matching dimensions
   const out = new ImageData(w, h);
   const a = L.data, b = R.data, o = out.data;
 
