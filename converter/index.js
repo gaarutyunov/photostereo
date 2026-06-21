@@ -10,7 +10,7 @@ import {
 } from './capabilities.js';
 import { runLocal, activeBackend, disposeLocal } from './engine-local.js';
 import {
-  runOpenRouter, listImageModels, DEFAULT_MODEL,
+  runOpenRouter, listImageModels, DEFAULT_MODEL, ANAGLYPH_PROMPT,
 } from './engine-openrouter.js';
 import * as oauth from './oauth.js';
 import { anaglyph, sideBySide, wiggleFrames } from './compositor.js';
@@ -50,8 +50,9 @@ export class StereoConverter {
     this._lastResults = {}; // { local?, openrouter? } view bundles
     this._models = [];
 
-    // AI custom-prompt state (OpenRouter engine only).
-    this._aiPromptMode = 'stereo'; // stereo | edit-right | edit-3d | edit-only
+    // AI prompt-mode state (OpenRouter engine only). Default: let the AI
+    // generate the finished anaglyph itself, with no compositor step.
+    this._aiPromptMode = 'anaglyph'; // anaglyph | stereo | edit-right | edit-3d | edit-only
     this._customPrompt = '';
 
     this._root = host.attachShadow ? host.attachShadow({ mode: 'open' }) : host;
@@ -164,9 +165,17 @@ export class StereoConverter {
 
   async _runOpenRouterEngine(bitmap, params) {
     const model = this._selectedModel || DEFAULT_MODEL;
-    const mode = this._aiPromptMode || 'stereo';
+    const mode = this._aiPromptMode || 'anaglyph';
 
-    // Default: synthesize the right-eye stereo view (§5).
+    // Default: the AI generates the finished red/cyan anaglyph itself. Shown
+    // as-is, with no compositor step.
+    if (mode === 'anaglyph') {
+      this._status('Generating 3D anaglyph with AI…');
+      const { right: img } = await runOpenRouter(bitmap, { model, prompt: ANAGLYPH_PROMPT });
+      return this._directBundle(img, 'AI 3D anaglyph', mode, params);
+    }
+
+    // Synthesize a right-eye view; the app builds the anaglyph (§5).
     if (mode === 'stereo') {
       this._status('Contacting OpenRouter…');
       const { left, right } = await runOpenRouter(bitmap, { model });
@@ -186,10 +195,7 @@ export class StereoConverter {
 
     if (mode === 'edit-only') {
       // Show just the edited image (no stereo pairing).
-      return {
-        engine: 'openrouter', label: 'AI edit', aiMode: mode,
-        left: edited, right: edited, edited, params,
-      };
+      return this._directBundle(edited, 'AI edit', mode, params);
     }
     if (mode === 'edit-right') {
       // Original = left, AI edit = right (difference-based pseudo-3D).
@@ -205,6 +211,14 @@ export class StereoConverter {
     bundle.aiMode = mode;
     bundle.edited = edited;
     return bundle;
+  }
+
+  // A bundle whose AI image is the finished result, shown/downloaded as-is.
+  _directBundle(img, label, mode, params) {
+    return {
+      engine: 'openrouter', label, aiMode: mode, direct: true,
+      left: img, right: img, edited: img, params,
+    };
   }
 
   _onModelProgress(p) {
@@ -291,9 +305,10 @@ export class StereoConverter {
         <div class="row">
           <label class="note" for="promptMode">Mode:</label>
           <select id="promptMode">
-            <option value="stereo">Stereo right-eye view (default)</option>
-            <option value="edit-right">Custom edit → right view (3D-ish)</option>
+            <option value="anaglyph">3D anaglyph — AI generates it (red/cyan)</option>
+            <option value="stereo">Stereo right-eye view (app builds anaglyph)</option>
             <option value="edit-3d">Custom edit → then make 3D (local depth)</option>
+            <option value="edit-right">Custom edit → right view (3D-ish)</option>
             <option value="edit-only">Custom edit → edited image only</option>
           </select>
         </div>
@@ -415,10 +430,11 @@ export class StereoConverter {
     // AI prompt mode + custom prompt (OpenRouter engine).
     this.$.promptMode.addEventListener('change', () => {
       this._aiPromptMode = this.$.promptMode.value;
-      const isCustom = this._aiPromptMode !== 'stereo';
-      this.$.customPrompt.classList.toggle('hidden', !isCustom);
-      // Custom edits only work on the AI engine; switch to it for convenience.
-      if (isCustom && this._caps.openRouterConnected) {
+      // The custom prompt box is only relevant to the edit-* modes.
+      const needsPrompt = this._aiPromptMode.startsWith('edit');
+      this.$.customPrompt.classList.toggle('hidden', !needsPrompt);
+      // Every prompt mode is AI-only; switch to the AI engine for convenience.
+      if (this._caps.openRouterConnected) {
         this._engine = 'openrouter';
         this._renderEngineToggle();
       }
@@ -615,14 +631,15 @@ export class StereoConverter {
     h.textContent = title;
     card.append(h);
 
-    // Edit-only: just the edited image plus a single PNG download (no stereo).
-    if (bundle.aiMode === 'edit-only') {
+    // Direct AI image (anaglyph / edited): show it as-is with a PNG download,
+    // no compositor step.
+    if (bundle.direct) {
       const cv = canvasFromBitmap(bundle.edited);
       cv.className = 'out';
       card.append(cv);
       const ex = document.createElement('div');
       ex.className = 'exports';
-      ex.append(btn('Download edited PNG', () => this._exportEdited(bundle)));
+      ex.append(btn('Download PNG', () => this._exportEdited(bundle)));
       card.append(ex);
       return card;
     }
@@ -694,9 +711,10 @@ export class StereoConverter {
   }
 
   async _exportEdited(bundle) {
-    await this._withBusy('Encoding edited image…', async () => {
+    await this._withBusy('Encoding image…', async () => {
       const blob = await canvasToPngBlob(canvasFromBitmap(bundle.edited));
-      download(blob, 'ai-edited.png');
+      const name = bundle.aiMode === 'anaglyph' ? 'ai-anaglyph.png' : 'ai-edited.png';
+      download(blob, name);
     });
   }
 
