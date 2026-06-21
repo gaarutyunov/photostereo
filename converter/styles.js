@@ -75,10 +75,16 @@ select {
 
 .engines { display: flex; gap: 10px; flex-wrap: wrap; }
 
-.ai-panel { display: grid; gap: 10px; }
+/* minmax(0, 1fr) stops the grid column from blowing out to the widest
+   <select> option text, so children honour the container width. */
+.ai-panel { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.ai-panel .row { width: 100%; min-width: 0; }
 .ai-panel .row label { white-space: nowrap; }
+.ai-panel select { flex: 1 1 200px; min-width: 0; max-width: 100%; }
 textarea.prompt {
-  width: 100%; min-width: 0; box-sizing: border-box;
+  display: block;
+  width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box;
+  min-height: 96px;
   background: var(--c-surface); color: var(--c-text);
   border: 1px solid var(--c-border); border-radius: 10px;
   padding: 10px; font: inherit; line-height: 1.4; resize: vertical;
