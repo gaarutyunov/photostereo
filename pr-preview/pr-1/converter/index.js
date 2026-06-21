@@ -221,10 +221,10 @@ export class StereoConverter {
       <div class="caps" id="caps"></div>
 
       <div class="engines" id="engines">
-        <button class="toggle" data-engine="local">Local (on-device)</button>
-        <button class="toggle" data-engine="openrouter">AI (OpenRouter)</button>
+        <button type="button" class="toggle" data-engine="local">Local (on-device)</button>
+        <button type="button" class="toggle" data-engine="openrouter">AI (OpenRouter)</button>
         <span class="spacer"></span>
-        <button id="orBtn"></button>
+        <button type="button" id="orBtn"></button>
       </div>
 
       <div id="orRow" class="ai-panel hidden">
@@ -266,11 +266,11 @@ export class StereoConverter {
       </div>
 
       <div class="row">
-        <button class="primary" id="convert" disabled>Convert</button>
-        <button id="rotate" disabled>Rotate 90°</button>
-        <button id="showOriginal" class="hidden">Show original</button>
-        <button id="reset" class="hidden">Reset</button>
-        <button id="convertBoth" class="hidden">Compare Local vs AI</button>
+        <button type="button" class="primary" id="convert" disabled>Convert</button>
+        <button type="button" id="rotate" disabled>Rotate 90°</button>
+        <button type="button" id="showOriginal" class="hidden">Show original</button>
+        <button type="button" id="reset" class="hidden">Reset</button>
+        <button type="button" id="convertBoth" class="hidden">Compare Local vs AI</button>
         <span class="spacer"></span>
         <div class="progress hidden" id="progressWrap"><i id="progress"></i></div>
       </div>
@@ -729,6 +729,7 @@ function rangeRow(key, label, min, max, step, value) {
 
 function btn(label, onClick) {
   const b = document.createElement('button');
+  b.type = 'button'; // never act as a form submit if the host wraps us in a form
   b.textContent = label;
   b.addEventListener('click', onClick);
   return b;
