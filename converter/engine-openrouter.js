@@ -6,7 +6,8 @@
 import { getStoredKey } from './oauth.js';
 
 const API = 'https://openrouter.ai/api/v1';
-export const DEFAULT_MODEL = 'google/gemini-2.5-flash-image';
+// Default to the top "best results" model (Nano Banana Pro).
+export const DEFAULT_MODEL = 'google/gemini-3-pro-image';
 
 // System prompt — the fixed "how to build a red/cyan anaglyph" instructions,
 // sent as a `system` role message (a separate role from the user's input, per
