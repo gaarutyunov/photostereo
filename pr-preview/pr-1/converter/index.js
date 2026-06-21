@@ -407,13 +407,18 @@ export class StereoConverter {
   _renderModelOptions() {
     const sel = this.$?.model;
     if (!sel) return;
-    const opts = [{ id: DEFAULT_MODEL, name: 'Gemini 2.5 Flash Image (default)' }];
-    for (const m of this._models) {
-      if (m.id !== DEFAULT_MODEL) opts.push(m);
-    }
-    sel.innerHTML = opts
-      .map((m) => `<option value="${m.id}">${escapeHtml(m.name)}</option>`)
-      .join('');
+    const bestIds = new Set(BEST_MODELS.map((m) => m.id));
+    // "Other models" = the live image-output list minus the curated best ones.
+    const others = this._models.filter((m) => !bestIds.has(m.id));
+    const group = (label, items) =>
+      items.length
+        ? `<optgroup label="${label}">` +
+          items.map((m) => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('') +
+          '</optgroup>'
+        : '';
+    sel.innerHTML =
+      group('Best results', BEST_MODELS) +
+      group('Other models', others);
     sel.value = this._selectedModel || DEFAULT_MODEL;
   }
 
@@ -632,6 +637,16 @@ export class StereoConverter {
 }
 
 // ---- module-local DOM helpers --------------------------------------------
+
+// Curated "Best results" image models (OpenRouter slugs), shown grouped at the
+// top of the model dropdown. Everything else from the live list goes under
+// "Other models".
+const BEST_MODELS = [
+  { id: 'google/gemini-3-pro-image', name: 'Google Nano Banana Pro (Gemini 3 Pro Image)' },
+  { id: 'google/gemini-3.1-flash-image', name: 'Google Nano Banana 2 (Gemini 3.1 Flash Image)' },
+  { id: 'openai/gpt-5-image', name: 'GPT-5 Image' },
+  { id: 'openai/gpt-5.4-image-2', name: 'GPT-5.4 Image 2' },
+];
 
 function fmtVal(value, step) {
   return step >= 1 ? String(Math.round(value)) : value.toFixed(3);
