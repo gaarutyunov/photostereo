@@ -507,18 +507,25 @@ export class StereoConverter {
   }
 
   // A-vs-B: AI synthesis is geometrically unstable, so always also compute the
-  // local result and let the user keep the better one (§5.3).
+  // local result and let the user keep the better one (§5.3). Already-generated
+  // results are reused — only the missing side is computed — so comparing from
+  // an existing AI result won't re-roll (and possibly spoil) the AI image, and
+  // comparing from a Local result only needs the AI call.
   async _doCompare() {
     if (!this._sourceBitmap) return;
     this._busy(true);
     try {
-      this._status('Computing Local result…');
-      const local = await this._runEngine('local', this._sourceBitmap, this._params);
-      this._lastResults.local = local;
-      this._status('Computing AI result…');
-      const ai = await this._runEngine('openrouter', this._sourceBitmap, this._params);
-      this._lastResults.openrouter = ai;
-      this._renderCompare(local, ai);
+      if (!this._lastResults.local) {
+        this._status('Computing Local result…');
+        this._lastResults.local =
+          await this._runEngine('local', this._sourceBitmap, this._params);
+      }
+      if (!this._lastResults.openrouter) {
+        this._status('Computing AI result…');
+        this._lastResults.openrouter =
+          await this._runEngine('openrouter', this._sourceBitmap, this._params);
+      }
+      this._renderCompare(this._lastResults.local, this._lastResults.openrouter);
       this._status('Compare ready — keep whichever looks better.');
     } catch (err) {
       this._status(err.message, true);
