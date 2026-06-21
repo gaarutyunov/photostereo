@@ -8,8 +8,9 @@ import { getStoredKey } from './oauth.js';
 const API = 'https://openrouter.ai/api/v1';
 export const DEFAULT_MODEL = 'google/gemini-2.5-flash-image';
 
-// Direct anaglyph: let the model produce the finished red/cyan 3D image itself,
-// with no post-processing on our side.
+// The model always produces a finished red/cyan 3D anaglyph. These are the
+// fixed "system" instructions; an optional user edit is prepended by
+// buildAnaglyphPrompt() so the scene is edited before the anaglyph is made.
 export const ANAGLYPH_PROMPT =
   'Turn this photo into ONE single finished red/cyan anaglyph 3D image — the ' +
   'classic stereoscopic picture viewed with red/cyan (red/blue) 3D glasses. ' +
@@ -21,35 +22,20 @@ export const ANAGLYPH_PROMPT =
   'frame. Output exactly one image — never a grid, collage, contact sheet, ' +
   'film strip, split screen, side-by-side pair, border or text.';
 
-// §5.3 — default second-view prompt.
-//
-// Phrased per Google's Nano Banana guide: singular, positive framing and
-// cinematic camera terms. Earlier multi-clause "parallax / as if seen by the
-// right eye" wording made the model emit a stereo film-strip collage instead
-// of one photo, so the output is described explicitly as a single full-frame
-// still and collage/grid output is ruled out.
-export const SECOND_VIEW_PROMPT =
-  'Re-photograph this exact scene as ONE single photorealistic still image ' +
-  'that completely fills the frame, framed identically and at the same aspect ' +
-  'ratio and resolution as the input photo. Move the camera a few centimetres ' +
-  'to the right — a subtle horizontal dolly to the right-eye viewpoint of a ' +
-  'stereo pair — so foreground objects shift slightly left relative to the ' +
-  'background. Keep every object, person, colour, texture, material, lighting, ' +
-  'exposure, white balance and focus exactly the same; only the camera ' +
-  'position changes by this small amount. Naturally reveal and fill the thin ' +
-  'background slivers that become visible beside foreground edges. The result ' +
-  'must be one continuous photograph — never a grid, collage, contact sheet, ' +
-  'film strip, thumbnails, split screen, side-by-side pair, border or text.';
-
-// §5.3 — hole-fill mode: refine a DIBR-warped right view by inpainting.
-export const HOLE_FILL_PROMPT =
-  'This is a single right-eye stereo photograph warped from a left image; some ' +
-  'background areas beside foreground edges are stretched or missing. Output ' +
-  'ONE single photorealistic image, same framing, aspect ratio and resolution ' +
-  'as the input, that fills the whole frame. Inpaint only the stretched or ' +
-  'missing background to match the surrounding scene; do not move or reshape ' +
-  'any object. Keep proportions, exposure, white balance and focus identical. ' +
-  'Never produce a grid, collage, film strip, split screen, border or text.';
+/**
+ * Build the full prompt: an optional user edit applied first, then the fixed
+ * anaglyph instructions. With no edit, it's just the anaglyph instructions.
+ * @param {string} [edit] user's optional edit instruction
+ */
+export function buildAnaglyphPrompt(edit) {
+  const e = (edit || '').trim();
+  if (!e) return ANAGLYPH_PROMPT;
+  return (
+    'First, edit the photo as follows, applying the change to the whole scene: ' +
+    `${e}\n\nThen, using that edited scene, ${ANAGLYPH_PROMPT[0].toLowerCase()}` +
+    ANAGLYPH_PROMPT.slice(1)
+  );
+}
 
 async function bitmapToDataURL(bitmap, type = 'image/jpeg', quality = 0.92) {
   const canvas = document.createElement('canvas');
@@ -77,10 +63,10 @@ export async function listImageModels() {
 }
 
 /**
- * Run the OpenRouter engine end-to-end (§5.2).
- * @param {ImageBitmap} bitmap source photo (becomes the left view)
- * @param {object} opts { model, prompt, rightSeed }
- *   rightSeed: optional ImageBitmap (DIBR right view) for hole-fill mode.
+ * Run the OpenRouter engine end-to-end (§5.2). The model always returns a
+ * finished 3D anaglyph image (with the original as `left` for the public API).
+ * @param {ImageBitmap} bitmap source photo
+ * @param {object} opts { model, prompt }  prompt defaults to ANAGLYPH_PROMPT
  * @returns {Promise<{left:ImageBitmap,right:ImageBitmap}>}
  */
 export async function runOpenRouter(bitmap, opts = {}) {
@@ -88,10 +74,8 @@ export async function runOpenRouter(bitmap, opts = {}) {
   if (!key) throw new Error('Not connected to OpenRouter. Connect first.');
 
   const model = opts.model || DEFAULT_MODEL;
-  const isHoleFill = !!opts.rightSeed;
-  const prompt = opts.prompt || (isHoleFill ? HOLE_FILL_PROMPT : SECOND_VIEW_PROMPT);
-  const sourceForAI = isHoleFill ? opts.rightSeed : bitmap;
-  const dataUrl = await bitmapToDataURL(sourceForAI);
+  const prompt = opts.prompt || ANAGLYPH_PROMPT;
+  const dataUrl = await bitmapToDataURL(bitmap);
 
   let res;
   try {
