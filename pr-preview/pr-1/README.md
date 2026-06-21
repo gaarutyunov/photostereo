@@ -11,6 +11,19 @@ Two interchangeable engines ship together:
 - **OpenRouter (AI)** — an image-editing model synthesizes the second view and
   fills occlusions, paid with the visitor's own credits via OAuth PKCE.
 
+### Custom AI edit modes
+
+Because text prompts only mean something to a generative model, the **AI engine**
+exposes a custom-prompt field (the Local engine is purely geometric depth +
+parallax and has no text input). Choose a mode in the AI panel:
+
+| Mode | What it does |
+| --- | --- |
+| Stereo right-eye view *(default)* | The §5.3 viewpoint-shift prompt — true stereo synthesis. |
+| Custom edit → right view | Your prompt rewrites the image; original = left, edit = right (difference-based pseudo-3D). |
+| Custom edit → then make 3D | Your prompt rewrites the image, then the **Local** engine builds depth + parallax from the edited result — a real on-device 3D pair from an AI-edited painting. |
+| Custom edit → edited image only | Just returns the edited image as a single PNG (e.g. restoring a painting). |
+
 Outputs: **anaglyph** (red/cyan), **wiggle** MP4 (WebCodecs/H.264) with a GIF
 fallback, **side-by-side** PNG, and a **depth-map** PNG (local engine only).
 When OpenRouter is connected, the converter also computes the local result and

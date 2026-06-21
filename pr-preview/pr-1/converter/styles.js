@@ -75,6 +75,16 @@ select {
 
 .engines { display: flex; gap: 10px; flex-wrap: wrap; }
 
+.ai-panel { display: grid; gap: 10px; }
+.ai-panel .row label { white-space: nowrap; }
+textarea.prompt {
+  width: 100%; min-width: 0; box-sizing: border-box;
+  background: var(--c-surface); color: var(--c-text);
+  border: 1px solid var(--c-border); border-radius: 10px;
+  padding: 10px; font: inherit; line-height: 1.4; resize: vertical;
+}
+textarea.prompt:focus { outline: none; border-color: var(--c-accent); }
+
 .progress {
   height: 8px; background: var(--c-surface); border-radius: 999px; overflow: hidden;
   border: 1px solid var(--c-border);

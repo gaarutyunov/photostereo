@@ -50,6 +50,10 @@ export class StereoConverter {
     this._lastResults = {}; // { local?, openrouter? } view bundles
     this._models = [];
 
+    // AI custom-prompt state (OpenRouter engine only).
+    this._aiPromptMode = 'stereo'; // stereo | edit-right | edit-3d | edit-only
+    this._customPrompt = '';
+
     this._root = host.attachShadow ? host.attachShadow({ mode: 'open' }) : host;
     this._readyPromise = this._init();
   }
@@ -133,14 +137,11 @@ export class StereoConverter {
   // ---- Engines -----------------------------------------------------------
 
   async _runEngine(engine, bitmap, params) {
-    if (engine === 'openrouter') {
-      this._status('Contacting OpenRouter…');
-      const { left, right } = await runOpenRouter(bitmap, {
-        model: this._selectedModel || DEFAULT_MODEL,
-      });
-      return { engine: 'openrouter', left, right, params };
-    }
-    // local (default)
+    if (engine === 'openrouter') return this._runOpenRouterEngine(bitmap, params);
+    return this._runLocalEngine(bitmap, params);
+  }
+
+  async _runLocalEngine(bitmap, params, label = 'Local') {
     this._status('Loading depth model…');
     const r = await runLocal(bitmap, {
       parallax: params.parallax,
@@ -151,6 +152,7 @@ export class StereoConverter {
     this._caps.localBackend = activeBackend();
     return {
       engine: 'local',
+      label,
       left: r.left,
       right: r.right,
       depth: r.depth,
@@ -158,6 +160,51 @@ export class StereoConverter {
       depthCanvas: r.depthCanvas,
       params,
     };
+  }
+
+  async _runOpenRouterEngine(bitmap, params) {
+    const model = this._selectedModel || DEFAULT_MODEL;
+    const mode = this._aiPromptMode || 'stereo';
+
+    // Default: synthesize the right-eye stereo view (§5).
+    if (mode === 'stereo') {
+      this._status('Contacting OpenRouter…');
+      const { left, right } = await runOpenRouter(bitmap, { model });
+      return {
+        engine: 'openrouter', label: 'AI (OpenRouter)', aiMode: mode,
+        left, right, params,
+      };
+    }
+
+    // Custom edit modes — the model rewrites the image from a free-text prompt.
+    const prompt = (this._customPrompt || '').trim();
+    if (!prompt) {
+      throw new Error('Enter a custom prompt for this edit mode.');
+    }
+    this._status('Editing image with AI…');
+    const { right: edited } = await runOpenRouter(bitmap, { model, prompt });
+
+    if (mode === 'edit-only') {
+      // Show just the edited image (no stereo pairing).
+      return {
+        engine: 'openrouter', label: 'AI edit', aiMode: mode,
+        left: edited, right: edited, edited, params,
+      };
+    }
+    if (mode === 'edit-right') {
+      // Original = left, AI edit = right (difference-based pseudo-3D).
+      return {
+        engine: 'openrouter', label: 'AI edit → right view', aiMode: mode,
+        left: bitmap, right: edited, edited, params,
+      };
+    }
+    // edit-3d: feed the AI-edited image into the local depth+parallax pipeline
+    // so a custom-edited painting still yields a real on-device 3D pair.
+    this._status('Building depth from the edited image…');
+    const bundle = await this._runLocalEngine(edited, params, 'AI edit → 3D');
+    bundle.aiMode = mode;
+    bundle.edited = edited;
+    return bundle;
   }
 
   _onModelProgress(p) {
@@ -179,6 +226,7 @@ export class StereoConverter {
       left: bundle.left,
       right: bundle.right,
       depth: bundle.depth,
+      edited: bundle.edited, // present for AI custom-edit modes
       engine: bundle.engine,
       exports: {
         async anaglyph(mode) {
@@ -234,10 +282,24 @@ export class StereoConverter {
         <button id="orBtn"></button>
       </div>
 
-      <div id="orRow" class="row hidden">
-        <label class="note">Model:</label>
-        <select id="model"></select>
-        <a id="credits" href="https://openrouter.ai/credits" target="_blank" rel="noopener">Add credits ↗</a>
+      <div id="orRow" class="ai-panel hidden">
+        <div class="row">
+          <label class="note" for="model">AI model:</label>
+          <select id="model"></select>
+          <a id="credits" href="https://openrouter.ai/credits" target="_blank" rel="noopener">Add credits ↗</a>
+        </div>
+        <div class="row">
+          <label class="note" for="promptMode">Mode:</label>
+          <select id="promptMode">
+            <option value="stereo">Stereo right-eye view (default)</option>
+            <option value="edit-right">Custom edit → right view (3D-ish)</option>
+            <option value="edit-3d">Custom edit → then make 3D (local depth)</option>
+            <option value="edit-only">Custom edit → edited image only</option>
+          </select>
+        </div>
+        <textarea id="customPrompt" class="prompt hidden" rows="3"
+          placeholder="Describe the edit, e.g. 'Restore this painting: repair cracks, recover the faded colours, keep the composition and brushwork identical.'"></textarea>
+        <div class="note">Custom edits run on the AI engine; the model rewrites the image from your instructions.</div>
       </div>
 
       <label class="drop" id="drop">
@@ -299,6 +361,8 @@ export class StereoConverter {
       orBtn: $('orBtn'),
       orRow: $('orRow'),
       model: $('model'),
+      promptMode: $('promptMode'),
+      customPrompt: $('customPrompt'),
       drop: $('drop'),
       file: $('file'),
       convert: $('convert'),
@@ -346,6 +410,21 @@ export class StereoConverter {
     orBtn.addEventListener('click', () => this._toggleOpenRouter());
     model?.addEventListener('change', () => {
       this._selectedModel = model.value;
+    });
+
+    // AI prompt mode + custom prompt (OpenRouter engine).
+    this.$.promptMode.addEventListener('change', () => {
+      this._aiPromptMode = this.$.promptMode.value;
+      const isCustom = this._aiPromptMode !== 'stereo';
+      this.$.customPrompt.classList.toggle('hidden', !isCustom);
+      // Custom edits only work on the AI engine; switch to it for convenience.
+      if (isCustom && this._caps.openRouterConnected) {
+        this._engine = 'openrouter';
+        this._renderEngineToggle();
+      }
+    });
+    this.$.customPrompt.addEventListener('input', () => {
+      this._customPrompt = this.$.customPrompt.value;
     });
 
     // Parameter sliders (§11 M3 controls).
@@ -511,7 +590,7 @@ export class StereoConverter {
   _renderResult(bundle) {
     this.$.views.classList.remove('hidden');
     this.$.views.innerHTML = '';
-    const card = this._buildResultCard(bundle, `Result — ${bundle.engine}`);
+    const card = this._buildResultCard(bundle, `Result — ${bundle.label || bundle.engine}`);
     this.$.views.append(card);
     this._currentBundle = bundle;
   }
@@ -536,6 +615,18 @@ export class StereoConverter {
     h.textContent = title;
     card.append(h);
 
+    // Edit-only: just the edited image plus a single PNG download (no stereo).
+    if (bundle.aiMode === 'edit-only') {
+      const cv = canvasFromBitmap(bundle.edited);
+      cv.className = 'out';
+      card.append(cv);
+      const ex = document.createElement('div');
+      ex.className = 'exports';
+      ex.append(btn('Download edited PNG', () => this._exportEdited(bundle)));
+      card.append(ex);
+      return card;
+    }
+
     // Default preview = anaglyph (the headline fused output).
     const ana = anaglyph(bundle.left, bundle.right, this._params.anaglyphMode);
     ana.className = 'out';
@@ -552,9 +643,15 @@ export class StereoConverter {
     if (bundle.depthCanvas) {
       exports.append(btn('Depth PNG', () => this._exportDepth(bundle)));
     }
+    if (bundle.edited) {
+      exports.append(btn('Edited PNG', () => this._exportEdited(bundle)));
+    }
     card.append(exports);
 
-    if (bundle.engine === 'openrouter') {
+    // The AI-instability caveat only applies when the geometry comes from the
+    // AI itself (stereo / edit→right), not when local depth built it (edit-3d).
+    if (bundle.engine === 'openrouter' &&
+        (bundle.aiMode === 'stereo' || bundle.aiMode === 'edit-right')) {
       const note = document.createElement('div');
       note.className = 'note';
       note.textContent =
@@ -593,6 +690,13 @@ export class StereoConverter {
     await this._withBusy('Encoding depth…', async () => {
       const blob = await canvasToPngBlob(bundle.depthCanvas);
       download(blob, `stereo-depth-${bundle.engine}.png`);
+    });
+  }
+
+  async _exportEdited(bundle) {
+    await this._withBusy('Encoding edited image…', async () => {
+      const blob = await canvasToPngBlob(canvasFromBitmap(bundle.edited));
+      download(blob, 'ai-edited.png');
     });
   }
 
