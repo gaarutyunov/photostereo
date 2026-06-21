@@ -25,7 +25,12 @@ export const CSS = /* css */ `
   padding: 20px;
   display: grid;
   gap: 18px;
+  max-width: 100%;
+  overflow-x: hidden;
 }
+/* Grid/flex children must be allowed to shrink below their content size,
+   otherwise range inputs and full-size canvases overflow the card. */
+.wrap > * { min-width: 0; }
 
 .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .spacer { flex: 1 1 auto; }
@@ -79,22 +84,25 @@ select {
 .status { font-size: 13px; color: var(--c-muted); min-height: 1.2em; }
 .status.error { color: #f87171; }
 
-.views { display: grid; gap: 14px; }
-.viewer { display: grid; gap: 8px; }
+.views { display: grid; gap: 14px; min-width: 0; }
+.viewer { display: grid; gap: 8px; min-width: 0; }
 .viewer h4 { margin: 0; font-size: 13px; color: var(--c-muted); font-weight: 600; }
 canvas.out, img.out {
-  max-width: 100%; border-radius: 10px; border: 1px solid var(--c-border);
+  max-width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--c-border);
   display: block; background: #000;
 }
 
-.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.compare .card { border: 1px solid var(--c-border); border-radius: 10px; padding: 10px; display: grid; gap: 8px; }
+.compare { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.compare .card { border: 1px solid var(--c-border); border-radius: 10px; padding: 10px; display: grid; gap: 8px; min-width: 0; }
 .compare .card.win { border-color: var(--c-accent); }
 @media (max-width: 640px) { .compare { grid-template-columns: 1fr; } }
 
 .controls { display: grid; gap: 10px; }
-.control { display: grid; grid-template-columns: 130px 1fr 48px; gap: 10px; align-items: center; font-size: 13px; }
-.control label { color: var(--c-muted); }
+.control { display: grid; grid-template-columns: minmax(80px, 120px) minmax(0, 1fr) 52px; gap: 10px; align-items: center; font-size: 13px; }
+.control label { color: var(--c-muted); min-width: 0; overflow-wrap: anywhere; }
+.control input[type=range] { width: 100%; min-width: 0; }
+.control input[type=checkbox] { justify-self: start; }
+.control select { min-width: 0; max-width: 100%; }
 .control output { text-align: right; color: var(--c-text); font-variant-numeric: tabular-nums; }
 
 .exports { display: flex; gap: 10px; flex-wrap: wrap; }

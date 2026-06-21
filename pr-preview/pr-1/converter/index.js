@@ -352,10 +352,10 @@ export class StereoConverter {
     this._root.querySelectorAll('input[type=range]').forEach((r) => {
       r.addEventListener('input', () => {
         const key = r.dataset.key;
+        const step = parseFloat(r.step) || 0;
         const val = parseFloat(r.value);
-        this._params[key] = key === 'wiggleFps' ? Math.round(val) : val;
-        r.parentElement.querySelector('output').textContent =
-          key === 'wiggleFps' ? String(Math.round(val)) : val.toFixed(3);
+        this._params[key] = step >= 1 ? Math.round(val) : val;
+        r.parentElement.querySelector('output').textContent = fmtVal(val, step);
       });
     });
     this.$.invert.addEventListener('change', () => {
@@ -654,13 +654,17 @@ export class StereoConverter {
 
 // ---- module-local DOM helpers --------------------------------------------
 
+function fmtVal(value, step) {
+  return step >= 1 ? String(Math.round(value)) : value.toFixed(3);
+}
+
 function rangeRow(key, label, min, max, step, value) {
   return `
     <div class="control">
       <label for="${key}">${label}</label>
       <input type="range" id="${key}" data-key="${key}"
         min="${min}" max="${max}" step="${step}" value="${value}" />
-      <output>${typeof value === 'number' ? value.toFixed(3) : value}</output>
+      <output>${fmtVal(value, step)}</output>
     </div>`;
 }
 
