@@ -34,10 +34,9 @@ The compositor (anaglyph/side-by-side/wiggle fusion) is only used by the
 **Local** engine, which is purely geometric depth + parallax and has no text
 input.
 
-Outputs: **anaglyph** (red/cyan), **wiggle** MP4 (WebCodecs/H.264) with a GIF
-fallback, **side-by-side** PNG, and a **depth-map** PNG (local engine only).
-When OpenRouter is connected, the converter also computes the local result and
-offers an **A-vs-B comparison** so you keep the better one.
+Output: a red/cyan **anaglyph** PNG (download). When OpenRouter is connected, the
+converter also computes the local result and offers an **A-vs-B comparison** so
+you keep the better one.
 
 ## Run locally
 
