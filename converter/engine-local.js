@@ -104,7 +104,9 @@ export async function runLocal(bitmap, opts = {}) {
     parallax = 0.045,
     converge = 0.5,
     invert = false,
-    maxSide = 1024,
+    // Cap working resolution to keep peak GPU/WASM memory modest on mobile —
+    // large phone photos at full res can evict the tab on first run (iOS).
+    maxSide = 768,
     onProgress,
   } = opts;
 
