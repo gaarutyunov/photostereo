@@ -101,9 +101,10 @@ export class StereoConverter {
 
   async _init() {
     // Complete any pending OpenRouter PKCE redirect before drawing UI (§6).
+    let justConnected = false;
     try {
       const key = await oauth.handleRedirect();
-      if (key) this._caps.openRouterConnected = true;
+      if (key) { this._caps.openRouterConnected = true; justConnected = true; }
     } catch (err) {
       this._pendingAuthError = err.message;
     }
@@ -111,8 +112,10 @@ export class StereoConverter {
     this._caps.webgpu = await probeWebGPU();
 
     // On load: WebGPU present → default Local; else still default Local on
-    // WASM while surfacing AI prominently in the toggle (§10).
-    if (!this._engine) this._engine = 'local';
+    // WASM while surfacing AI prominently in the toggle (§10). If the user just
+    // completed the OpenRouter connect flow, land them back in AI mode.
+    if (justConnected) this._engine = 'openrouter';
+    else if (!this._engine) this._engine = 'local';
 
     this._caps.openRouterConnected = oauth.isConnected();
     this._render();
@@ -387,12 +390,18 @@ export class StereoConverter {
     // Show "Compare" only when both engines are usable.
     const canBoth = this._caps.openRouterConnected;
     this.$.convertBoth.classList.toggle('hidden', !canBoth || !this._sourceBitmap);
+    // AI controls (connect button, model + prompt) are irrelevant to Local.
+    this._renderOrButton();
   }
 
   _renderOrButton() {
+    const aiMode = this._engine === 'openrouter';
     const connected = this._caps.openRouterConnected;
     this.$.orBtn.textContent = connected ? 'Disconnect AI' : 'Connect OpenRouter';
-    this.$.orRow.classList.toggle('hidden', !connected);
+    // Connect/disconnect only matters in AI mode.
+    this.$.orBtn.classList.toggle('hidden', !aiMode);
+    // Model + prompt only when AI is selected and connected.
+    this.$.orRow.classList.toggle('hidden', !(aiMode && connected));
   }
 
   _renderModelOptions() {
