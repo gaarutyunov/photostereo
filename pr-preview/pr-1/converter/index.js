@@ -270,6 +270,7 @@ export class StereoConverter {
 
       <div class="row">
         <button class="primary" id="convert" disabled>Convert</button>
+        <button id="rotate" disabled>Rotate 90°</button>
         <button id="convertBoth" class="hidden">Compare Local vs AI</button>
         <span class="spacer"></span>
         <div class="progress hidden" id="progressWrap"><i id="progress"></i></div>
@@ -301,6 +302,7 @@ export class StereoConverter {
       drop: $('drop'),
       file: $('file'),
       convert: $('convert'),
+      rotate: $('rotate'),
       convertBoth: $('convertBoth'),
       progress: $('progress'),
       progressWrap: $('progressWrap'),
@@ -339,6 +341,7 @@ export class StereoConverter {
 
     convert.addEventListener('click', () => this._doConvert());
     convertBoth.addEventListener('click', () => this._doCompare());
+    this.$.rotate.addEventListener('click', () => this._rotateSource());
 
     orBtn.addEventListener('click', () => this._toggleOpenRouter());
     model?.addEventListener('change', () => {
@@ -424,14 +427,36 @@ export class StereoConverter {
   async _loadFile(file) {
     try {
       this._status('Reading image…');
-      const bitmap = await createImageBitmap(file);
+      // Honour EXIF orientation so portrait phone photos load upright.
+      const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
       this._sourceBitmap = bitmap;
       this.$.convert.disabled = false;
+      this.$.rotate.disabled = false;
       this._renderEngineToggle();
       this._status(`Loaded ${file.name} (${bitmap.width}×${bitmap.height}).`);
       this._showSource(bitmap);
     } catch (err) {
       this._status(`Could not read image: ${err.message}`, true);
+    }
+  }
+
+  // Rotate the source 90° clockwise (the whole pipeline depends on
+  // orientation, so we rotate the input, not the output). Re-converts
+  // automatically if a result is already on screen.
+  async _rotateSource() {
+    if (!this._sourceBitmap) return;
+    const hadResult = !!this._currentBundle ||
+      !!this.$.views.querySelector('.compare');
+    const wasCompare = !!this.$.views.querySelector('.compare');
+    this._sourceBitmap = await rotateBitmap90(this._sourceBitmap);
+    this._lastResults = {};
+    this._currentBundle = null;
+    this._showSource(this._sourceBitmap);
+    if (hadResult) {
+      if (wasCompare) await this._doCompare();
+      else await this._doConvert();
+    } else {
+      this._status('Rotated 90°.');
     }
   }
 
@@ -610,6 +635,7 @@ export class StereoConverter {
 
   _busy(on) {
     this.$.convert.disabled = on || !this._sourceBitmap;
+    this.$.rotate.disabled = on || !this._sourceBitmap;
     this.$.convertBoth.disabled = on;
     this.$.progressWrap.classList.toggle('hidden', !on);
     if (!on) this._setProgress(0);
@@ -653,6 +679,17 @@ function viewerEl(title, canvas) {
   canvas.className = 'out';
   v.append(h, canvas);
   return v;
+}
+
+async function rotateBitmap90(bitmap) {
+  const c = document.createElement('canvas');
+  c.width = bitmap.height;
+  c.height = bitmap.width;
+  const ctx = c.getContext('2d');
+  ctx.translate(c.width / 2, c.height / 2);
+  ctx.rotate(Math.PI / 2);
+  ctx.drawImage(bitmap, -bitmap.width / 2, -bitmap.height / 2);
+  return createImageBitmap(c);
 }
 
 function canvasFromBitmap(bitmap) {

@@ -129,6 +129,9 @@ export class DibrWarper {
   _upload(tex, source) {
     const gl = this.gl;
     gl.bindTexture(gl.TEXTURE_2D, tex);
+    // WebGL texture origin is bottom-left while image data is top-left; flip on
+    // upload so the rendered output is not vertically mirrored.
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
     gl.texImage2D(
       gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source
     );
