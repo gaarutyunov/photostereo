@@ -268,6 +268,8 @@ export class StereoConverter {
       <div class="row">
         <button class="primary" id="convert" disabled>Convert</button>
         <button id="rotate" disabled>Rotate 90°</button>
+        <button id="showOriginal" class="hidden">Show original</button>
+        <button id="reset" class="hidden">Reset</button>
         <button id="convertBoth" class="hidden">Compare Local vs AI</button>
         <span class="spacer"></span>
         <div class="progress hidden" id="progressWrap"><i id="progress"></i></div>
@@ -301,6 +303,8 @@ export class StereoConverter {
       file: $('file'),
       convert: $('convert'),
       rotate: $('rotate'),
+      showOriginal: $('showOriginal'),
+      reset: $('reset'),
       convertBoth: $('convertBoth'),
       progress: $('progress'),
       progressWrap: $('progressWrap'),
@@ -340,6 +344,8 @@ export class StereoConverter {
     convert.addEventListener('click', () => this._doConvert());
     convertBoth.addEventListener('click', () => this._doCompare());
     this.$.rotate.addEventListener('click', () => this._rotateSource());
+    this.$.showOriginal.addEventListener('click', () => this._toggleOriginal());
+    this.$.reset.addEventListener('click', () => this._reset());
 
     orBtn.addEventListener('click', () => this._toggleOpenRouter());
     model?.addEventListener('change', () => {
@@ -445,6 +451,8 @@ export class StereoConverter {
       this._sourceBitmap = bitmap;
       this.$.convert.disabled = false;
       this.$.rotate.disabled = false;
+      // A fresh image clears any previous generated result.
+      this._clearResults();
       this._renderEngineToggle();
       this._status(`Loaded ${file.name} (${bitmap.width}×${bitmap.height}).`);
       this._showSource(bitmap);
@@ -462,8 +470,7 @@ export class StereoConverter {
       !!this.$.views.querySelector('.compare');
     const wasCompare = !!this.$.views.querySelector('.compare');
     this._sourceBitmap = await rotateBitmap90(this._sourceBitmap);
-    this._lastResults = {};
-    this._currentBundle = null;
+    this._clearResults();
     this._showSource(this._sourceBitmap);
     if (hadResult) {
       if (wasCompare) await this._doCompare();
@@ -527,6 +534,8 @@ export class StereoConverter {
     const card = this._buildResultCard(bundle, `Result — ${bundle.label || bundle.engine}`);
     this.$.views.append(card);
     this._currentBundle = bundle;
+    this._resultView = { type: 'single', bundle };
+    this._afterResult();
   }
 
   _renderCompare(local, ai) {
@@ -539,6 +548,53 @@ export class StereoConverter {
       this._buildResultCard(ai, 'B — AI (OpenRouter)', true)
     );
     this.$.views.append(grid);
+    this._resultView = { type: 'compare', local, ai };
+    this._afterResult();
+  }
+
+  // Called after a result is rendered: reveal the original/reset controls.
+  _afterResult() {
+    this._showingOriginal = false;
+    this.$.showOriginal.textContent = 'Show original';
+    this.$.showOriginal.classList.remove('hidden');
+    this.$.reset.classList.remove('hidden');
+  }
+
+  // Toggle the view between the generated result and the untouched source.
+  _toggleOriginal() {
+    if (!this._resultView || !this._sourceBitmap) return;
+    if (this._showingOriginal) {
+      if (this._resultView.type === 'compare') {
+        this._renderCompare(this._resultView.local, this._resultView.ai);
+      } else {
+        this._renderResult(this._resultView.bundle);
+      }
+      // _afterResult (called above) resets label + flag to the result state.
+    } else {
+      this._showSource(this._sourceBitmap);
+      this._showingOriginal = true;
+      this.$.showOriginal.textContent = 'Show result';
+    }
+  }
+
+  // Clear the generated result but keep the loaded source image.
+  _reset() {
+    this._clearResults();
+    if (this._sourceBitmap) {
+      this._showSource(this._sourceBitmap);
+      this._status('Reset — original image kept.');
+    }
+  }
+
+  // Drop all generated results/state and hide the original/reset controls.
+  _clearResults() {
+    this._lastResults = {};
+    this._currentBundle = null;
+    this._resultView = null;
+    this._showingOriginal = false;
+    this.$.showOriginal.classList.add('hidden');
+    this.$.showOriginal.textContent = 'Show original';
+    this.$.reset.classList.add('hidden');
   }
 
   _buildResultCard(bundle, title, compact = false) {
@@ -621,6 +677,8 @@ export class StereoConverter {
     this.$.convert.disabled = on || !this._sourceBitmap;
     this.$.rotate.disabled = on || !this._sourceBitmap;
     this.$.convertBoth.disabled = on;
+    this.$.showOriginal.disabled = on;
+    this.$.reset.disabled = on;
     this.$.progressWrap.classList.toggle('hidden', !on);
     if (!on) this._setProgress(0);
   }
