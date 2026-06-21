@@ -642,8 +642,8 @@ export class StereoConverter {
 // top of the model dropdown. Everything else from the live list goes under
 // "Other models".
 const BEST_MODELS = [
-  { id: 'google/gemini-3-pro-image', name: 'Google Nano Banana Pro (Gemini 3 Pro Image)' },
   { id: 'google/gemini-3.1-flash-image', name: 'Google Nano Banana 2 (Gemini 3.1 Flash Image)' },
+  { id: 'google/gemini-3-pro-image', name: 'Google Nano Banana Pro (Gemini 3 Pro Image)' },
   { id: 'openai/gpt-5-image', name: 'GPT-5 Image' },
   { id: 'openai/gpt-5.4-image-2', name: 'GPT-5.4 Image 2' },
 ];
