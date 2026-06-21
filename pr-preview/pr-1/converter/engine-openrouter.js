@@ -8,6 +8,19 @@ import { getStoredKey } from './oauth.js';
 const API = 'https://openrouter.ai/api/v1';
 export const DEFAULT_MODEL = 'google/gemini-2.5-flash-image';
 
+// Direct anaglyph: let the model produce the finished red/cyan 3D image itself,
+// with no post-processing on our side.
+export const ANAGLYPH_PROMPT =
+  'Turn this photo into ONE single finished red/cyan anaglyph 3D image — the ' +
+  'classic stereoscopic picture viewed with red/cyan (red/blue) 3D glasses. ' +
+  'Create realistic horizontal stereo parallax from the scene depth: encode ' +
+  'the left-eye view in the RED channel and the right-eye view in the CYAN ' +
+  '(green+blue) channels, so foreground objects show a clear red/cyan colour ' +
+  'fringe at their edges while distant areas stay aligned. Keep the same ' +
+  'scene, framing, aspect ratio and resolution as the input and fill the whole ' +
+  'frame. Output exactly one image — never a grid, collage, contact sheet, ' +
+  'film strip, split screen, side-by-side pair, border or text.';
+
 // §5.3 — default second-view prompt.
 //
 // Phrased per Google's Nano Banana guide: singular, positive framing and

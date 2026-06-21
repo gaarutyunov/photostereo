@@ -19,10 +19,15 @@ parallax and has no text input). Choose a mode in the AI panel:
 
 | Mode | What it does |
 | --- | --- |
-| Stereo right-eye view *(default)* | The §5.3 viewpoint-shift prompt — true stereo synthesis. |
-| Custom edit → right view | Your prompt rewrites the image; original = left, edit = right (difference-based pseudo-3D). |
+| 3D anaglyph — AI generates it *(default)* | The model produces the finished red/cyan anaglyph itself; shown/downloaded as-is, with **no compositor step**. |
+| Stereo right-eye view | The §5.3 viewpoint-shift prompt — the AI returns a right-eye view and the **app** builds the anaglyph/side-by-side/wiggle. |
 | Custom edit → then make 3D | Your prompt rewrites the image, then the **Local** engine builds depth + parallax from the edited result — a real on-device 3D pair from an AI-edited painting. |
+| Custom edit → right view | Your prompt rewrites the image; original = left, edit = right (difference-based pseudo-3D). |
 | Custom edit → edited image only | Just returns the edited image as a single PNG (e.g. restoring a painting). |
+
+Modes that produce a single AI image (3D anaglyph, edited image only) are shown
+exactly as the model returns them — the compositor (anaglyph/side-by-side/wiggle
+fusion) is only used for the pair-based modes and the Local engine.
 
 Outputs: **anaglyph** (red/cyan), **wiggle** MP4 (WebCodecs/H.264) with a GIF
 fallback, **side-by-side** PNG, and a **depth-map** PNG (local engine only).
