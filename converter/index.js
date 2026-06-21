@@ -10,7 +10,7 @@ import {
 } from './capabilities.js';
 import { runLocal, activeBackend, disposeLocal } from './engine-local.js';
 import {
-  runOpenRouter, listImageModels, DEFAULT_MODEL, ANAGLYPH_PROMPT,
+  runOpenRouter, listImageModels, DEFAULT_MODEL, buildAnaglyphPrompt,
 } from './engine-openrouter.js';
 import * as oauth from './oauth.js';
 import { anaglyph, sideBySide, wiggleFrames } from './compositor.js';
@@ -50,9 +50,8 @@ export class StereoConverter {
     this._lastResults = {}; // { local?, openrouter? } view bundles
     this._models = [];
 
-    // AI prompt-mode state (OpenRouter engine only). Default: let the AI
-    // generate the finished anaglyph itself, with no compositor step.
-    this._aiPromptMode = 'anaglyph'; // anaglyph | stereo | edit-right | edit-3d | edit-only
+    // Optional user edit for the AI engine. The model always outputs a 3D
+    // anaglyph; this text (if any) is applied as an edit first.
     this._customPrompt = '';
 
     this._root = host.attachShadow ? host.attachShadow({ mode: 'open' }) : host;
@@ -163,61 +162,20 @@ export class StereoConverter {
     };
   }
 
+  // The AI always returns a finished 3D anaglyph. An optional user edit is
+  // applied first. The result is shown/downloaded as-is, no compositor step.
   async _runOpenRouterEngine(bitmap, params) {
     const model = this._selectedModel || DEFAULT_MODEL;
-    const mode = this._aiPromptMode || 'anaglyph';
-
-    // Default: the AI generates the finished red/cyan anaglyph itself. Shown
-    // as-is, with no compositor step.
-    if (mode === 'anaglyph') {
-      this._status('Generating 3D anaglyph with AI…');
-      const { right: img } = await runOpenRouter(bitmap, { model, prompt: ANAGLYPH_PROMPT });
-      return this._directBundle(img, 'AI 3D anaglyph', mode, params);
-    }
-
-    // Synthesize a right-eye view; the app builds the anaglyph (§5).
-    if (mode === 'stereo') {
-      this._status('Contacting OpenRouter…');
-      const { left, right } = await runOpenRouter(bitmap, { model });
-      return {
-        engine: 'openrouter', label: 'AI (OpenRouter)', aiMode: mode,
-        left, right, params,
-      };
-    }
-
-    // Custom edit modes — the model rewrites the image from a free-text prompt.
-    const prompt = (this._customPrompt || '').trim();
-    if (!prompt) {
-      throw new Error('Enter a custom prompt for this edit mode.');
-    }
-    this._status('Editing image with AI…');
-    const { right: edited } = await runOpenRouter(bitmap, { model, prompt });
-
-    if (mode === 'edit-only') {
-      // Show just the edited image (no stereo pairing).
-      return this._directBundle(edited, 'AI edit', mode, params);
-    }
-    if (mode === 'edit-right') {
-      // Original = left, AI edit = right (difference-based pseudo-3D).
-      return {
-        engine: 'openrouter', label: 'AI edit → right view', aiMode: mode,
-        left: bitmap, right: edited, edited, params,
-      };
-    }
-    // edit-3d: feed the AI-edited image into the local depth+parallax pipeline
-    // so a custom-edited painting still yields a real on-device 3D pair.
-    this._status('Building depth from the edited image…');
-    const bundle = await this._runLocalEngine(edited, params, 'AI edit → 3D');
-    bundle.aiMode = mode;
-    bundle.edited = edited;
-    return bundle;
-  }
-
-  // A bundle whose AI image is the finished result, shown/downloaded as-is.
-  _directBundle(img, label, mode, params) {
+    const edit = (this._customPrompt || '').trim();
+    this._status(edit
+      ? 'Editing & generating 3D anaglyph with AI…'
+      : 'Generating 3D anaglyph with AI…');
+    const { right: img } = await runOpenRouter(bitmap, {
+      model, prompt: buildAnaglyphPrompt(edit),
+    });
     return {
-      engine: 'openrouter', label, aiMode: mode, direct: true,
-      left: img, right: img, edited: img, params,
+      engine: 'openrouter', label: 'AI 3D anaglyph', aiMode: 'anaglyph',
+      direct: true, left: img, right: img, edited: img, params,
     };
   }
 
@@ -302,19 +260,10 @@ export class StereoConverter {
           <select id="model"></select>
           <a id="credits" href="https://openrouter.ai/credits" target="_blank" rel="noopener">Add credits ↗</a>
         </div>
-        <div class="row">
-          <label class="note" for="promptMode">Mode:</label>
-          <select id="promptMode">
-            <option value="anaglyph">3D anaglyph — AI generates it (red/cyan)</option>
-            <option value="stereo">Stereo right-eye view (app builds anaglyph)</option>
-            <option value="edit-3d">Custom edit → then make 3D (local depth)</option>
-            <option value="edit-right">Custom edit → right view (3D-ish)</option>
-            <option value="edit-only">Custom edit → edited image only</option>
-          </select>
-        </div>
-        <textarea id="customPrompt" class="prompt hidden" rows="3"
-          placeholder="Describe the edit, e.g. 'Restore this painting: repair cracks, recover the faded colours, keep the composition and brushwork identical.'"></textarea>
-        <div class="note">Custom edits run on the AI engine; the model rewrites the image from your instructions.</div>
+        <label class="note" for="customPrompt">Optional edit (leave blank for a plain 3D anaglyph):</label>
+        <textarea id="customPrompt" class="prompt" rows="3"
+          placeholder="Optional — describe an edit to apply first, e.g. 'Restore this painting: repair cracks and recover the faded colours.' Leave blank to just make a 3D anaglyph."></textarea>
+        <div class="note">The AI always outputs a red/cyan 3D anaglyph; add an instruction above to edit the scene first.</div>
       </div>
 
       <label class="drop" id="drop">
@@ -376,7 +325,6 @@ export class StereoConverter {
       orBtn: $('orBtn'),
       orRow: $('orRow'),
       model: $('model'),
-      promptMode: $('promptMode'),
       customPrompt: $('customPrompt'),
       drop: $('drop'),
       file: $('file'),
@@ -427,18 +375,7 @@ export class StereoConverter {
       this._selectedModel = model.value;
     });
 
-    // AI prompt mode + custom prompt (OpenRouter engine).
-    this.$.promptMode.addEventListener('change', () => {
-      this._aiPromptMode = this.$.promptMode.value;
-      // The custom prompt box is only relevant to the edit-* modes.
-      const needsPrompt = this._aiPromptMode.startsWith('edit');
-      this.$.customPrompt.classList.toggle('hidden', !needsPrompt);
-      // Every prompt mode is AI-only; switch to the AI engine for convenience.
-      if (this._caps.openRouterConnected) {
-        this._engine = 'openrouter';
-        this._renderEngineToggle();
-      }
-    });
+    // Optional AI edit instruction (OpenRouter engine).
     this.$.customPrompt.addEventListener('input', () => {
       this._customPrompt = this.$.customPrompt.value;
     });
@@ -631,8 +568,8 @@ export class StereoConverter {
     h.textContent = title;
     card.append(h);
 
-    // Direct AI image (anaglyph / edited): show it as-is with a PNG download,
-    // no compositor step.
+    // AI engine: the model returns the finished 3D anaglyph — show it as-is
+    // with a PNG download, no compositor step.
     if (bundle.direct) {
       const cv = canvasFromBitmap(bundle.edited);
       cv.className = 'out';
@@ -644,7 +581,7 @@ export class StereoConverter {
       return card;
     }
 
-    // Default preview = anaglyph (the headline fused output).
+    // Local engine: anaglyph is the fused preview built from the L/R pair.
     const ana = anaglyph(bundle.left, bundle.right, this._params.anaglyphMode);
     ana.className = 'out';
     ana.dataset.role = 'anaglyph';
@@ -660,21 +597,8 @@ export class StereoConverter {
     if (bundle.depthCanvas) {
       exports.append(btn('Depth PNG', () => this._exportDepth(bundle)));
     }
-    if (bundle.edited) {
-      exports.append(btn('Edited PNG', () => this._exportEdited(bundle)));
-    }
     card.append(exports);
 
-    // The AI-instability caveat only applies when the geometry comes from the
-    // AI itself (stereo / edit→right), not when local depth built it (edit-3d).
-    if (bundle.engine === 'openrouter' &&
-        (bundle.aiMode === 'stereo' || bundle.aiMode === 'edit-right')) {
-      const note = document.createElement('div');
-      note.className = 'note';
-      note.textContent =
-        'AI viewpoint synthesis can be geometrically unstable — compare with Local.';
-      card.append(note);
-    }
     return card;
   }
 

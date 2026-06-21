@@ -11,23 +11,21 @@ Two interchangeable engines ship together:
 - **OpenRouter (AI)** — an image-editing model synthesizes the second view and
   fills occlusions, paid with the visitor's own credits via OAuth PKCE.
 
-### Custom AI edit modes
+### AI engine behaviour
 
-Because text prompts only mean something to a generative model, the **AI engine**
-exposes a custom-prompt field (the Local engine is purely geometric depth +
-parallax and has no text input). Choose a mode in the AI panel:
+The **AI engine** always produces a finished red/cyan **3D anaglyph**, shown and
+downloaded exactly as the model returns it (no compositor step). The anaglyph
+instructions are fixed; the AI panel offers a single **optional** edit field:
 
-| Mode | What it does |
-| --- | --- |
-| 3D anaglyph — AI generates it *(default)* | The model produces the finished red/cyan anaglyph itself; shown/downloaded as-is, with **no compositor step**. |
-| Stereo right-eye view | The §5.3 viewpoint-shift prompt — the AI returns a right-eye view and the **app** builds the anaglyph/side-by-side/wiggle. |
-| Custom edit → then make 3D | Your prompt rewrites the image, then the **Local** engine builds depth + parallax from the edited result — a real on-device 3D pair from an AI-edited painting. |
-| Custom edit → right view | Your prompt rewrites the image; original = left, edit = right (difference-based pseudo-3D). |
-| Custom edit → edited image only | Just returns the edited image as a single PNG (e.g. restoring a painting). |
+- **Leave it blank** → a plain 3D anaglyph of your photo.
+- **Type an instruction** (e.g. *"Restore this painting: repair cracks and
+  recover the faded colours"*) → the edit is applied to the scene first, then the
+  anaglyph is generated from the edited result.
 
-Modes that produce a single AI image (3D anaglyph, edited image only) are shown
-exactly as the model returns them — the compositor (anaglyph/side-by-side/wiggle
-fusion) is only used for the pair-based modes and the Local engine.
+Internally this is a fixed system prompt (`ANAGLYPH_PROMPT`) combined with the
+user's optional edit via `buildAnaglyphPrompt()`. The compositor
+(anaglyph/side-by-side/wiggle fusion) is only used by the **Local** engine, which
+is purely geometric depth + parallax and has no text input.
 
 Outputs: **anaglyph** (red/cyan), **wiggle** MP4 (WebCodecs/H.264) with a GIF
 fallback, **side-by-side** PNG, and a **depth-map** PNG (local engine only).
