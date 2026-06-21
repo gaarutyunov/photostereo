@@ -10,7 +10,7 @@ import {
 } from './capabilities.js';
 import { runLocal, activeBackend, disposeLocal } from './engine-local.js';
 import {
-  runOpenRouter, listImageModels, DEFAULT_MODEL, buildAnaglyphPrompt,
+  runOpenRouter, listImageModels, DEFAULT_MODEL,
 } from './engine-openrouter.js';
 import * as oauth from './oauth.js';
 import { anaglyph, sideBySide, wiggleFrames } from './compositor.js';
@@ -166,13 +166,11 @@ export class StereoConverter {
   // applied first. The result is shown/downloaded as-is, no compositor step.
   async _runOpenRouterEngine(bitmap, params) {
     const model = this._selectedModel || DEFAULT_MODEL;
-    const edit = (this._customPrompt || '').trim();
-    this._status(edit
-      ? 'Editing & generating 3D anaglyph with AI…'
+    const userPrompt = (this._customPrompt || '').trim();
+    this._status(userPrompt
+      ? 'Generating 3D anaglyph with AI (your instructions)…'
       : 'Generating 3D anaglyph with AI…');
-    const { right: img } = await runOpenRouter(bitmap, {
-      model, prompt: buildAnaglyphPrompt(edit),
-    });
+    const { right: img } = await runOpenRouter(bitmap, { model, userPrompt });
     return {
       engine: 'openrouter', label: 'AI 3D anaglyph', aiMode: 'anaglyph',
       direct: true, left: img, right: img, edited: img, params,
@@ -260,10 +258,10 @@ export class StereoConverter {
           <select id="model"></select>
           <a id="credits" href="https://openrouter.ai/credits" target="_blank" rel="noopener">Add credits ↗</a>
         </div>
-        <label class="note" for="customPrompt">Optional edit (leave blank for a plain 3D anaglyph):</label>
+        <label class="note" for="customPrompt">Optional instructions (leave blank for a standard 3D anaglyph):</label>
         <textarea id="customPrompt" class="prompt" rows="3"
-          placeholder="Optional — describe an edit to apply first, e.g. 'Restore this painting: repair cracks and recover the faded colours.' Leave blank to just make a 3D anaglyph."></textarea>
-        <div class="note">The AI always outputs a red/cyan 3D anaglyph; add an instruction above to edit the scene first.</div>
+          placeholder="Optional — tune how the 3D is built, e.g. 'Make the depth stronger', 'Only make the person pop out, keep the background flat 2D', 'Push the foreground further forward', or edit the scene first."></textarea>
+        <div class="note">The AI always outputs a red/cyan 3D anaglyph. Your text guides how it's created — depth strength, which objects are 3D, convergence, or scene edits.</div>
       </div>
 
       <label class="drop" id="drop">

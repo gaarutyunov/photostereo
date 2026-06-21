@@ -8,34 +8,57 @@ import { getStoredKey } from './oauth.js';
 const API = 'https://openrouter.ai/api/v1';
 export const DEFAULT_MODEL = 'google/gemini-2.5-flash-image';
 
-// The model always produces a finished red/cyan 3D anaglyph. These are the
-// fixed "system" instructions; an optional user edit is prepended by
-// buildAnaglyphPrompt() so the scene is edited before the anaglyph is made.
-export const ANAGLYPH_PROMPT =
-  'Turn this photo into ONE single finished red/cyan anaglyph 3D image — the ' +
-  'classic stereoscopic picture viewed with red/cyan (red/blue) 3D glasses. ' +
-  'Create realistic horizontal stereo parallax from the scene depth: encode ' +
-  'the left-eye view in the RED channel and the right-eye view in the CYAN ' +
-  '(green+blue) channels, so foreground objects show a clear red/cyan colour ' +
-  'fringe at their edges while distant areas stay aligned. Keep the same ' +
-  'scene, framing, aspect ratio and resolution as the input and fill the whole ' +
-  'frame. Output exactly one image — never a grid, collage, contact sheet, ' +
-  'film strip, split screen, side-by-side pair, border or text.';
+// System prompt — the fixed "how to build a red/cyan anaglyph" instructions,
+// sent as a `system` role message (a separate role from the user's input, per
+// the OpenAI-compatible OpenRouter chat API). It describes, in detail, the same
+// stereo pipeline this app performs in code (monocular depth -> DIBR horizontal
+// parallax -> Dubois red/cyan compositing) so the model reproduces it inside.
+export const ANAGLYPH_SYSTEM_PROMPT =
+  'You are an expert stereographer. You convert a single 2D photograph into ' +
+  'ONE finished red/cyan anaglyph 3D image, performing the entire stereoscopic ' +
+  'pipeline internally. Work through these stages:\n\n' +
 
-/**
- * Build the full prompt: an optional user edit applied first, then the fixed
- * anaglyph instructions. With no edit, it's just the anaglyph instructions.
- * @param {string} [edit] user's optional edit instruction
- */
-export function buildAnaglyphPrompt(edit) {
-  const e = (edit || '').trim();
-  if (!e) return ANAGLYPH_PROMPT;
-  return (
-    'First, edit the photo as follows, applying the change to the whole scene: ' +
-    `${e}\n\nThen, using that edited scene, ${ANAGLYPH_PROMPT[0].toLowerCase()}` +
-    ANAGLYPH_PROMPT.slice(1)
-  );
-}
+  '1) DEPTH ESTIMATION. Analyse the photo and build a per-pixel depth map from ' +
+  'monocular depth cues: occlusion (what overlaps what), relative and known ' +
+  'object size, linear perspective and vanishing lines, texture-density ' +
+  'gradients, shading and cast shadows, atmospheric haze, and focus vs. blur. ' +
+  'Decide what is near the camera and what is far — foreground subjects are ' +
+  'near; sky, horizons and distant surfaces are far.\n\n' +
+
+  '2) STEREO PARALLAX (two eyes). Synthesize a LEFT-eye and a RIGHT-eye view ' +
+  'of the same scene, as if taken by two cameras separated by the human ' +
+  'inter-ocular distance (~6.5 cm). This is purely HORIZONTAL parallax: shift ' +
+  'each pixel sideways by an amount proportional to its nearness — near objects ' +
+  'shift a lot between the two eyes, far objects barely shift, and the shift is ' +
+  'in opposite directions for the two eyes. Never introduce any vertical shift. ' +
+  'Place the convergence (zero-parallax) plane at roughly mid-depth: that plane ' +
+  'stays aligned and sharp, objects in front of it appear to pop out toward the ' +
+  'viewer, objects behind it recede into the screen. Keep the maximum ' +
+  'displacement modest (a few percent of the image width) so it is comfortable ' +
+  'to fuse. Where a shifted foreground edge reveals background that was hidden, ' +
+  'plausibly in-paint that newly exposed sliver by extending the surrounding ' +
+  'background.\n\n' +
+
+  '3) ANAGLYPH ENCODING. Merge the two eye views into ONE image for red/cyan ' +
+  '(red/blue) glasses. Put the LEFT-eye view into the RED channel and the ' +
+  'RIGHT-eye view into the CYAN channels (green + blue), using Dubois-style ' +
+  'colour mixing to minimise ghosting and retinal rivalry. The visible result ' +
+  'is a normal-looking photograph carrying red/cyan colour fringes along depth ' +
+  'edges — the wider the fringe offset, the closer that object reads.\n\n' +
+
+  'OUTPUT RULES: return exactly ONE single image — the finished anaglyph — with ' +
+  'the same scene, framing, aspect ratio and resolution as the input, filling ' +
+  'the whole frame. Never output a grid, collage, contact sheet, film strip, ' +
+  'split screen, side-by-side pair, raw depth map, border, caption or any text. ' +
+  'By default apply moderate depth to the whole scene. If the user gives extra ' +
+  'instructions, adjust the stereo accordingly (e.g. stronger or weaker overall ' +
+  'depth, make only one specified object 3D while keeping the rest flat/2D, ' +
+  'push particular elements further forward or back, or move the convergence ' +
+  'plane).';
+
+// Default user message when the user supplies no tuning instructions.
+export const DEFAULT_USER_PROMPT =
+  'Create the red/cyan 3D anaglyph of this image, following your instructions.';
 
 async function bitmapToDataURL(bitmap, type = 'image/jpeg', quality = 0.92) {
   const canvas = document.createElement('canvas');
@@ -64,9 +87,11 @@ export async function listImageModels() {
 
 /**
  * Run the OpenRouter engine end-to-end (§5.2). The model always returns a
- * finished 3D anaglyph image (with the original as `left` for the public API).
+ * finished red/cyan 3D anaglyph. The anaglyph algorithm is sent as a `system`
+ * message; the user's optional tuning text is sent as the `user` message
+ * alongside the source image.
  * @param {ImageBitmap} bitmap source photo
- * @param {object} opts { model, prompt }  prompt defaults to ANAGLYPH_PROMPT
+ * @param {object} opts { model, userPrompt }
  * @returns {Promise<{left:ImageBitmap,right:ImageBitmap}>}
  */
 export async function runOpenRouter(bitmap, opts = {}) {
@@ -74,7 +99,7 @@ export async function runOpenRouter(bitmap, opts = {}) {
   if (!key) throw new Error('Not connected to OpenRouter. Connect first.');
 
   const model = opts.model || DEFAULT_MODEL;
-  const prompt = opts.prompt || ANAGLYPH_PROMPT;
+  const userText = (opts.userPrompt || '').trim() || DEFAULT_USER_PROMPT;
   const dataUrl = await bitmapToDataURL(bitmap);
 
   let res;
@@ -91,10 +116,11 @@ export async function runOpenRouter(bitmap, opts = {}) {
         model,
         modalities: ['image', 'text'],
         messages: [
+          { role: 'system', content: ANAGLYPH_SYSTEM_PROMPT },
           {
             role: 'user',
             content: [
-              { type: 'text', text: prompt },
+              { type: 'text', text: userText },
               { type: 'image_url', image_url: { url: dataUrl } },
             ],
           },

@@ -14,18 +14,25 @@ Two interchangeable engines ship together:
 ### AI engine behaviour
 
 The **AI engine** always produces a finished red/cyan **3D anaglyph**, shown and
-downloaded exactly as the model returns it (no compositor step). The anaglyph
-instructions are fixed; the AI panel offers a single **optional** edit field:
+downloaded exactly as the model returns it (no compositor step). The request
+uses two distinct chat roles (OpenRouter is OpenAI-compatible):
 
-- **Leave it blank** → a plain 3D anaglyph of your photo.
-- **Type an instruction** (e.g. *"Restore this painting: repair cracks and
-  recover the faded colours"*) → the edit is applied to the scene first, then the
-  anaglyph is generated from the edited result.
+- A **system** message (`ANAGLYPH_SYSTEM_PROMPT`) carries the full anaglyph
+  algorithm — monocular depth estimation → horizontal stereo parallax (DIBR) →
+  Dubois red/cyan encoding — i.e. the same pipeline this app runs in code, so the
+  model reproduces it internally.
+- A **user** message carries the source image plus your **optional** tuning
+  instructions. These don't just edit the scene — they steer *how* the 3D is
+  built:
+  - **Blank** → a standard 3D anaglyph.
+  - *"Make the depth stronger"*, *"Only make the person pop out, keep the
+    background flat 2D"*, *"Push the foreground further forward"*, or a scene
+    edit — the model adjusts depth strength, which objects are 3D, convergence,
+    etc.
 
-Internally this is a fixed system prompt (`ANAGLYPH_PROMPT`) combined with the
-user's optional edit via `buildAnaglyphPrompt()`. The compositor
-(anaglyph/side-by-side/wiggle fusion) is only used by the **Local** engine, which
-is purely geometric depth + parallax and has no text input.
+The compositor (anaglyph/side-by-side/wiggle fusion) is only used by the
+**Local** engine, which is purely geometric depth + parallax and has no text
+input.
 
 Outputs: **anaglyph** (red/cyan), **wiggle** MP4 (WebCodecs/H.264) with a GIF
 fallback, **side-by-side** PNG, and a **depth-map** PNG (local engine only).
