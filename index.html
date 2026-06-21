@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Stereoscope Converter</title>
-  <meta name="description" content="Turn a single photo into a 3D stereo pair, anaglyph and wiggle — entirely in your browser." />
+  <meta name="description" content="Turn a single photo into a red/cyan 3D anaglyph — entirely in your browser." />
   <style>
     /* Landing layer only. It sizes/positions the host and sets the CSS custom
        properties the converter reads (§0). It never touches /converter/**. */
@@ -25,7 +25,6 @@
       --radius: 16px;
       display: block;
     }
-    footer { margin-top: 36px; color: #6b7280; font-size: 13px; }
     a { color: #d6365f; }
   </style>
 </head>
@@ -34,22 +33,13 @@
     <header>
       <h1>Stereoscope Converter</h1>
       <p>
-        Convert a single existing photo into a stereo pair, a red/cyan anaglyph
-        and a glasses-free wiggle — fully in your browser, no account required.
+        Convert a single existing photo into a red/cyan 3D anaglyph — fully in
+        your browser, no account required.
       </p>
     </header>
 
     <!-- Host element. The converter mounts and styles itself inside. -->
     <div id="converter"></div>
-
-    <footer>
-      <p>
-        Two engines ship together: <b>Local</b> (on-device depth + parallax,
-        WebGPU/WASM) and <b>AI</b> (OpenRouter, your own credits via OAuth).
-        Apple Live Photo / MV-HEVC spatial export is not possible in-browser and
-        is out of scope; Google Motion Photo export arrives later.
-      </p>
-    </footer>
   </div>
 
   <script type="module">
