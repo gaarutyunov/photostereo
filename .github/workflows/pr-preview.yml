@@ -1,0 +1,33 @@
+# PR previews via rossjrw/pr-preview-action (§9).
+# Publishes each PR to gh-pages under pr-preview/pr-<N>/ and cleans up on close.
+name: PR Preview
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, closed]
+
+# Required for the action to push to the gh-pages branch and comment.
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: pr-preview-${{ github.event.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # No build step needed — the site is static (§0). The source tree is the
+      # deployable artifact, mirroring the production deploy.
+      - name: Deploy preview
+        uses: rossjrw/pr-preview-action@v1
+        with:
+          source-dir: .
+          preview-branch: gh-pages
+          umbrella-dir: pr-preview
+          action: auto
