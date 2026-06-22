@@ -1,0 +1,37 @@
+/* Museo Ruso default theme (CONTENT.md §5).
+ *
+ * Theming is CSS-only: design tokens at :root, one file per exhibition. Swapping
+ * exhibitions = swapping this file for another theme-<name>.css (CONTENT.md §6).
+ *
+ * Restrained, exhibition-appropriate, with legible long-form typography for the
+ * history sections. The converter stays visually integrated yet functionally
+ * independent: only --accent and --radius are forwarded to its host — the sole
+ * styling coupling permitted (CONTENT.md §5). The converter keeps its own
+ * (dark) internal palette; the page matches it so the card reads as integrated.
+ */
+
+:root {
+  /* Brand / accent. */
+  --accent: #c9434f;          /* restrained museum red */
+  --accent-contrast: #ffffff; /* text on accent */
+
+  /* Surface palette (dark, gallery-like). */
+  --bg: #0d0e12;
+  --bg-elev: #15171d;
+  --fg: #ecedf0;
+  --muted: #9aa0ad;
+  --border: #262a33;
+
+  /* Shape. */
+  --radius: 16px;
+
+  /* Typography. */
+  --font-display: "Georgia", "Iowan Old Style", "Times New Roman", serif;
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+
+  /* Layout. */
+  --max-width: 880px;
+
+  color-scheme: dark;
+}

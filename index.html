@@ -3,62 +3,29 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Stereoscope Converter</title>
-  <meta name="description" content="Turn a single photo into a red/cyan 3D anaglyph — entirely in your browser." />
-  <style>
-    /* Landing layer only. It sizes/positions the host and sets the CSS custom
-       properties the converter reads (§0). It never touches /converter/**. */
-    :root { color-scheme: dark; }
-    body {
-      margin: 0;
-      background: #0b0c10;
-      color: #e8eaed;
-      font: 16px/1.6 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-    }
-    .page { max-width: 880px; margin: 0 auto; padding: 40px 20px 80px; }
-    header h1 { font-size: 28px; margin: 0 0 6px; }
-    header p { color: #9aa0ad; margin: 0 0 28px; }
+  <title>Stereoscopy — Museo Ruso de Málaga</title>
+  <meta name="description" content="The history and science of stereoscopy — and a converter that turns a single photo into a red/cyan 3D anaglyph, entirely in your browser." />
 
-    /* Theming the converter purely from the outside. */
-    #converter {
-      --accent: #d6365f;
-      --radius: 16px;
-      display: block;
-    }
-    a { color: #d6365f; }
-  </style>
+  <!-- Theming is CSS-only (CONTENT.md §5): the per-exhibition theme file sets
+       design tokens at :root; landing.css consumes them. Swapping exhibitions =
+       swapping the theme file (see content.js `theme`). The converter is tinted
+       only through --accent / --radius and is never edited (CONTENT.md §2). -->
+  <link rel="stylesheet" href="theme-museo-ruso.css" />
+  <link rel="stylesheet" href="landing.css" />
 </head>
 <body>
-  <div class="page">
-    <header>
-      <h1>Stereoscope Converter</h1>
-      <p>
-        Convert a single existing photo into a red/cyan 3D anaglyph — fully in
-        your browser, no account required.
-      </p>
-      <p>
-        Switch to <b>AI mode</b> to make something more interesting — turn 2D
-        artwork and paintings into 3D, tune the depth, or make just one object
-        pop out while the rest stays flat.
-      </p>
-    </header>
+  <a class="skip-link" href="#converter-section">Skip to the converter</a>
 
-    <!-- Host element. The converter mounts and styles itself inside. -->
-    <div id="converter"></div>
-  </div>
+  <!-- The renderer (landing.js) builds the whole page from content.js into this
+       container, then mounts the converter through its public API. -->
+  <main class="page" id="page"></main>
 
-  <script type="module">
-    import { StereoConverter } from './converter/index.js';
+  <script type="module" src="landing.js"></script>
 
-    const host = document.getElementById('converter');
-    const converter = new StereoConverter(host, {
-      defaultEngine: 'local',
-      // callbackUrl defaults to this page's URL (the GitHub Pages HTTPS URL).
-    });
-
-    converter.ready().then(() => {
-      console.log('Converter ready:', converter.getCapabilities());
-    });
-  </script>
+  <noscript>
+    <p style="max-width:680px;margin:40px auto;padding:0 22px;font-family:system-ui">
+      This page — including the photo-to-3D converter — needs JavaScript enabled.
+    </p>
+  </noscript>
 </body>
 </html>
