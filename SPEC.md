@@ -186,7 +186,7 @@ Callback = the GitHub Pages URL (HTTPS). Handle 400/403/405 with clear messages.
 
 ## 9. Deployment
 
-- **Production:** `actions/upload-pages-artifact` + `actions/deploy-pages` from `main` (OIDC, `github-pages` environment).
+- **Production:** `peaceiris/actions-gh-pages` from `main` publishes the static site to the **root of `gh-pages`** (`keep_files: true` so PR previews survive). Pages serves a single source — "Deploy from a branch" (`gh-pages`) — shared with previews.
 - **PR previews:** `rossjrw/pr-preview-action` → `gh-pages` under `pr-preview/pr-<N>/`, `clean-exclude: pr-preview/`.
 - CORS: OpenRouter permits direct browser calls — no proxy.
 - Both workflows must be live and green from M1.
