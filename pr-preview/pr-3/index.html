@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stereoscopy — Museo Ruso de Málaga</title>
+  <meta name="description" content="The history and science of stereoscopy — and a converter that turns a single photo into a red/cyan 3D anaglyph, entirely in your browser." />
+
+  <!-- Theming is CSS-only (CONTENT.md §5): the per-exhibition theme file sets
+       design tokens at :root; landing.css consumes them. Swapping exhibitions =
+       swapping the theme file (see content.js `theme`). The converter is tinted
+       only through --accent / --radius and is never edited (CONTENT.md §2). -->
+  <link rel="stylesheet" href="theme-museo-ruso.css" />
+  <link rel="stylesheet" href="landing.css" />
+</head>
+<body>
+  <a class="skip-link" href="#converter-section">Skip to the converter</a>
+
+  <!-- The renderer (landing.js) builds the whole page from content.js into this
+       container, then mounts the converter through its public API. -->
+  <main class="page" id="page"></main>
+
+  <script type="module" src="landing.js"></script>
+
+  <noscript>
+    <p style="max-width:680px;margin:40px auto;padding:0 22px;font-family:system-ui">
+      This page — including the photo-to-3D converter — needs JavaScript enabled.
+    </p>
+  </noscript>
+</body>
+</html>
