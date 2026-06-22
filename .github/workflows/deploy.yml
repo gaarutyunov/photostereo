@@ -1,5 +1,9 @@
 # Production deploy to GitHub Pages from main (§9).
-# OIDC + github-pages environment; no build step (static ES modules, §0).
+# Publishes the static site (no build step — static ES modules, §0) to the ROOT
+# of the gh-pages branch so it coexists with PR previews under pr-preview/
+# (pr-preview.yml). GitHub Pages serves a single source; using "Deploy from a
+# branch" (gh-pages) is the source the preview action requires, so production
+# and previews stay green from one source instead of fighting over it.
 name: Deploy to GitHub Pages
 
 on:
@@ -7,35 +11,29 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Push the published site to the gh-pages branch.
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
-# Allow one concurrent deployment; don't cancel an in-progress production run.
+# Serialize production deploys; don't cancel an in-progress one.
 concurrency:
-  group: pages
+  group: pages-deploy
   cancel-in-progress: false
 
 jobs:
   deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
         with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
           # The whole repo is the site; everything needed is static.
-          path: .
-
-      - name: Deploy
-        id: deployment
-        uses: actions/deploy-pages@v4
+          publish_dir: .
+          # Keep the pr-preview/ subtree (and anything else) already on the
+          # branch — only the production files at the root are overwritten.
+          keep_files: true
