@@ -1,0 +1,327 @@
+/* Page layout (CONTENT.md §3). Page-level structure only — it consumes the theme
+ * tokens (theme-<name>.css) and never styles converter internals.
+ *
+ * Pivot layout: the converter owns the primary page; the lecture/exhibition
+ * material lives in a right-side CURTAIN opened by a fixed bottom-right action
+ * button. The converter renders inside its own Shadow DOM, so these global rules
+ * do not leak into it (CONTENT.md §2). We forward only --accent and --radius to
+ * the converter host (#converter), the sole styling coupling permitted (§5).
+ */
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 17px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.page {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 22px 96px;
+}
+
+a {
+  color: var(--accent);
+  text-underline-offset: 2px;
+}
+
+/* Skip link for keyboard users (CONTENT.md §5 — keyboard-navigable). */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  padding: 10px 16px;
+  border-radius: 0 0 var(--radius) 0;
+  z-index: 10;
+}
+.skip-link:focus { left: 0; }
+
+/* ---- Sticky site header (brand + Home + source) ------------------------- */
+/* Matches garutyunov.com layout. Sits below the curtain system in the stack
+ * (toggle 40 / backdrop 45 / curtain 50) so the curtain covers it when open. */
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 56px;
+  padding: 0 max(16px, env(safe-area-inset-left)) 0 max(16px, env(safe-area-inset-right));
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.site-header .brand {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--fg);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+.site-header .brand:hover { color: var(--muted); }
+.site-nav { display: flex; align-items: center; gap: 20px; }
+.site-nav a {
+  font-size: 14px;
+  color: var(--muted);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  transition: color 0.15s ease;
+}
+.site-nav a:hover { color: var(--fg); }
+.site-nav svg { width: 18px; height: 18px; display: block; }
+
+/* ---- Primary header: the converter is the headline (§3.2) --------------- */
+
+.app-header {
+  padding: 44px 0 28px;
+}
+.app-header h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(34px, 6vw, 52px);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+.app-intro {
+  max-width: 62ch;
+  color: var(--muted);
+  font-size: 19px;
+  margin: 16px 0 0;
+}
+
+/* ---- Converter section (§3.2) ------------------------------------------ */
+
+.converter-section { padding: 0 0 32px; }
+
+/* The converter host. Only --accent and --radius are forwarded (CONTENT.md §5).
+ * Those inherit from :root automatically. The converter ALSO happens to read
+ * --bg/--surface/--text/--muted/--border (its own optional tokens), and our
+ * page tokens share some of those names — so we reset them to `initial` here.
+ * That makes the converter fall back to its own (dark) defaults, keeping the
+ * page↔converter coupling to exactly --accent and --radius. */
+#converter {
+  --bg: initial;
+  --surface: initial;
+  --text: initial;
+  --muted: initial;
+  --border: initial;
+  display: block;
+  margin-top: 8px;
+}
+
+.converter-note {
+  margin: 0 0 24px;
+  padding: 14px 16px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  font-size: 15px;
+  color: var(--muted);
+}
+
+/* ---- Action button: bottom-right corner -------------------------------- */
+
+.curtain-toggle {
+  position: fixed;
+  right: max(20px, env(safe-area-inset-right));
+  bottom: max(20px, env(safe-area-inset-bottom));
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border: 0;
+  border-radius: 50%;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+.curtain-toggle:hover { filter: brightness(1.08); }
+.curtain-toggle:active { transform: translateY(1px); }
+.curtain-toggle:focus-visible { outline: 2px solid var(--fg); outline-offset: 3px; }
+.curtain-toggle-icon { flex: none; }
+
+/* Hide the button while the curtain is open (the curtain has its own close). */
+body.curtain-open .curtain-toggle {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px);
+}
+
+/* ---- Curtain (right-side drawer) --------------------------------------- */
+
+.curtain-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.curtain-backdrop.is-open { opacity: 1; }
+
+.curtain {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 50;
+  width: min(560px, 100%);
+  height: 100%;
+  background: var(--bg);
+  border-left: 1px solid var(--border);
+  box-shadow: -16px 0 40px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+  visibility: hidden;
+}
+.curtain.is-open {
+  transform: translateX(0);
+  visibility: visible;
+}
+
+.curtain-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.curtain-heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 19px;
+  letter-spacing: -0.01em;
+  color: var(--fg);
+}
+.curtain-close {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg-elev);
+  color: var(--fg);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.curtain-close:hover { border-color: var(--accent); }
+.curtain-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.curtain-body {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 22px 56px;
+}
+
+/* ---- Curtain sections -------------------------------------------------- */
+
+.curtain-body section { padding: 36px 0; border-bottom: 1px solid var(--border); }
+.curtain-body footer { padding: 36px 0 0; color: var(--muted); font-size: 15px; }
+
+.curtain-body section > h3,
+.curtain-body footer > h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(22px, 4vw, 28px);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin: 0 0 8px;
+}
+.curtain-body footer > h3 { font-size: 20px; color: var(--fg); }
+
+/* ---- History & science (§3.3 / §4) ------------------------------------- */
+
+.history > h3 { margin-bottom: 22px; }
+
+.history-entry { padding: 24px 0; border-top: 1px solid var(--border); }
+.history-entry:first-of-type { border-top: 0; padding-top: 0; }
+.history-entry h4 {
+  font-family: var(--font-display);
+  font-size: 21px;
+  line-height: 1.25;
+  margin: 0 0 10px;
+}
+.prose { max-width: 68ch; }
+.prose p { margin: 0 0 14px; }
+.prose p:last-child { margin-bottom: 0; }
+.prose em { font-style: italic; }
+.prose strong { font-weight: 700; color: var(--fg); }
+
+.entry-refs {
+  margin: 16px 0 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+.entry-refs .ref-chip {
+  display: inline-block;
+  color: var(--accent);
+  text-decoration: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 10px;
+  margin: 0 6px 6px 0;
+}
+.entry-refs .ref-chip:hover { border-color: var(--accent); }
+
+/* ---- About (§3.4) ------------------------------------------------------ */
+
+.credits {
+  margin: 22px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+.credits div { display: flex; gap: 10px; }
+.credits dt, .credits .k {
+  color: var(--muted);
+  min-width: 90px;
+  font-size: 15px;
+}
+.credits .v { font-weight: 600; }
+
+/* ---- Footer / references (§3.5) ---------------------------------------- */
+
+.references { margin: 0 0 28px; padding-left: 22px; display: grid; gap: 10px; }
+.references li { line-height: 1.5; }
+.references a { word-break: break-word; }
+.footer-meta { border-top: 1px solid var(--border); padding-top: 20px; }
+.footer-links { list-style: none; padding: 0; margin: 0 0 12px; display: flex; flex-wrap: wrap; gap: 18px; }
+.footer-links a { text-decoration: none; }
+.footer-links a:hover { text-decoration: underline; }
+
+/* ---- Accessibility: respect reduced motion (CONTENT.md §5) -------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
