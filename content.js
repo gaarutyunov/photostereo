@@ -117,6 +117,32 @@ export const content = {
       references: ['polaroid', 'viewmaster'],
     },
     {
+      id: 'brian-may-lsc',
+      title: 'Brian May & the London Stereoscopic Company revival (2009 →)',
+      body:
+        '**Brian May** — lead guitarist of **Queen** and holder of a PhD in ' +
+        'Astrophysics from **Imperial College London** (2007) — revived the ' +
+        '**London Stereoscopic Company** (LSC) around **2009**. Originally ' +
+        'founded in **1854**, the Victorian LSC became the world\'s leading ' +
+        'publisher of stereoviews, issuing over **100,000 titles** before ' +
+        'eventually closing.\n\n' +
+        'Working with researcher **Elena Vidal** and later **Denis Pellerin**, ' +
+        'May republished rare stereoview collections in richly annotated books, ' +
+        'each bundled with an **OWL Stereoscope** — a compact, affordable card-' +
+        'viewer of his own design that requires no special equipment. Titles ' +
+        'include *A Village Lost and Found* (2009), which uses T.R. Williams\'s ' +
+        '1850s views to recover a vanished English village scene by scene, and ' +
+        '*Diableries: Stereoscopic Adventures in Hell* (2013), presenting rare ' +
+        'French skeletal-fantasy cards from the 1860s.\n\n' +
+        'May argues that 3D photographs are uniquely powerful historical documents ' +
+        '— "people in stereo are far more *real* than people in a flat photograph" ' +
+        '— and through the LSC he continues to advocate for the preservation and ' +
+        'public accessibility of stereoscopic heritage. ' +
+        '[London Stereoscopic Company ↗](https://www.londonstereo.com/modern_stereos_brianmay.html)',
+      media: [],
+      references: ['londonstereo'],
+    },
+    {
       id: 'perception',
       title: 'How human depth perception works',
       body:
@@ -237,6 +263,14 @@ export const content = {
       id: 'viewmaster',
       text: 'The View-Master (introduced 1939) and its WWII training use.',
       url: 'https://en.wikipedia.org/wiki/View-Master',
+    },
+    {
+      id: 'londonstereo',
+      text: 'Brian May & Elena Vidal, London Stereoscopic Company (revived c. 2009) — ' +
+        'publisher of Victorian stereoview heritage books including ' +
+        '*A Village Lost and Found* (2009) and *Diableries* (2013); ' +
+        'creators of the OWL Stereoscope.',
+      url: 'https://www.londonstereo.com/modern_stereos_brianmay.html',
     },
     {
       id: 'ipd',
