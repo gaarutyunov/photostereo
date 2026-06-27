@@ -144,19 +144,6 @@ function buildCurtainBody(body) {
   });
   footer.append(ol);
 
-  const meta = el('div', { class: 'footer-meta' });
-  if (content.footer.links?.length) {
-    const links = el('ul', { class: 'footer-links' });
-    for (const l of content.footer.links) {
-      const li = el('li', {});
-      li.append(el('a', { href: l.url, rel: 'noopener noreferrer' },
-        escapeHtml(l.label)));
-      links.append(li);
-    }
-    meta.append(links);
-  }
-  meta.append(el('p', {}, inlineMd(content.footer.license)));
-  footer.append(meta);
   body.append(footer);
 }
 
