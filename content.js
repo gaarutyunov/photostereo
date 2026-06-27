@@ -131,33 +131,28 @@ export const content = {
       references: ['ipd'],
     },
     {
-      id: 'under-the-hood',
-      title: 'Under the hood: how the converter works',
+      id: ‘under-the-hood’,
+      title: ‘Under the hood: how the converter works’,
       body:
-        'The converter ships **two interchangeable engines**, and both turn your ' +
-        'single flat photo into a stereo pair **entirely in the browser**.\n\n' +
-        '**Local engine (on-device).** It first estimates a **depth map** — how ' +
-        'far every pixel sits from the camera — with the **Depth Anything V2** ' +
-        'neural model (~50 MB) running through **transformers.js**, on your GPU via ' +
-        '**WebGPU** where available and **WebAssembly** otherwise. Nothing is ' +
-        'uploaded; your image never leaves the device. From that depth it ' +
-        'synthesizes a second eye by **depth-image-based rendering (DIBR)** — ' +
-        'shifting each pixel horizontally in proportion to its depth ' +
-        '(`Δx = parallax · (depth − convergence)`), so near things move more than ' +
-        'far ones, exactly like real **binocular disparity**. A fragment shader ' +
-        'does the warp and fills the small gaps revealed behind foreground edges.\n\n' +
-        '**AI engine (optional).** Instead of warping, an image model on ' +
-        '**OpenRouter** repaints the scene from a viewpoint shifted **~6 cm** to ' +
-        'the side — one eye’s width from the other — and naturally fills the newly ' +
-        'revealed background. You pay with your own credits over a secure OAuth ' +
-        'connection; the local result is always computed too, so you can compare ' +
-        'and keep the better one.\n\n' +
-        '**Turning the pair into 3D.** Finally the two views are merged into a ' +
-        '**red/cyan anaglyph** using the **Dubois** colour matrix, tuned to ' +
-        'minimize the ghosting and retinal rivalry that plagued older red/blue ' +
-        'methods — the same lineage described above.',
+        ‘The converter ships **two interchangeable engines** — choose above.\n\n’ +
+        ‘**Local engine (on-device).** Runs entirely in your browser; your image ‘ +
+        ‘never leaves the device. **Depth Anything V2** (~50 MB, WebGPU or ‘ +
+        ‘WebAssembly via **transformers.js**) estimates a per-pixel depth map. A ‘ +
+        ‘**DIBR** warp then synthesizes the second eye view by shifting each pixel ‘ +
+        ‘horizontally in proportion to its depth ‘ +
+        ‘(`Δx = parallax · (depth − convergence)`). The two views are finally ‘ +
+        ‘merged into a **red/cyan anaglyph** using the **Dubois** colour matrix — ‘ +
+        ‘the same lineage described above. ‘ +
+        ‘[Source ↗](https://github.com/gaarutyunov/stereoscope/blob/main/converter/engine-local.js)\n\n’ +
+        ‘**AI engine (optional).** Sends your photo to an image model on ‘ +
+        ‘**OpenRouter** together with a ‘ +
+        ‘[system prompt](https://github.com/gaarutyunov/stereoscope/blob/main/converter/engine-openrouter.js#L17) ‘ +
+        ‘that covers the full notion of anaglyph stereoscopy and instructs the ‘ +
+        ‘model to output a single finished **red/cyan anaglyph** directly — there ‘ +
+        ‘is no separate compositor step. You pay with your own credits over a ‘ +
+        ‘secure OAuth connection.’,
       media: [],
-      references: ['depthanything', 'transformersjs', 'dubois', 'ipd'],
+      references: [‘depthanything’, ‘transformersjs’, ‘dubois’],
     },
   ],
 
