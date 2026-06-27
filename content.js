@@ -131,28 +131,28 @@ export const content = {
       references: ['ipd'],
     },
     {
-      id: ‘under-the-hood’,
-      title: ‘Under the hood: how the converter works’,
+      id: 'under-the-hood',
+      title: 'Under the hood: how the converter works',
       body:
-        ‘The converter ships **two interchangeable engines** — choose above.\n\n’ +
-        ‘**Local engine (on-device).** Runs entirely in your browser; your image ‘ +
-        ‘never leaves the device. **Depth Anything V2** (~50 MB, WebGPU or ‘ +
-        ‘WebAssembly via **transformers.js**) estimates a per-pixel depth map. A ‘ +
-        ‘**DIBR** warp then synthesizes the second eye view by shifting each pixel ‘ +
-        ‘horizontally in proportion to its depth ‘ +
-        ‘(`Δx = parallax · (depth − convergence)`). The two views are finally ‘ +
-        ‘merged into a **red/cyan anaglyph** using the **Dubois** colour matrix — ‘ +
-        ‘the same lineage described above. ‘ +
-        ‘[Source ↗](https://github.com/gaarutyunov/stereoscope/blob/main/converter/engine-local.js)\n\n’ +
-        ‘**AI engine (optional).** Sends your photo to an image model on ‘ +
-        ‘**OpenRouter** together with a ‘ +
-        ‘[system prompt](https://github.com/gaarutyunov/stereoscope/blob/main/converter/engine-openrouter.js#L17) ‘ +
-        ‘that covers the full notion of anaglyph stereoscopy and instructs the ‘ +
-        ‘model to output a single finished **red/cyan anaglyph** directly — there ‘ +
-        ‘is no separate compositor step. You pay with your own credits over a ‘ +
-        ‘secure OAuth connection.’,
+        'The converter ships **two interchangeable engines** — choose above.\n\n' +
+        '**Local engine (on-device).** Runs entirely in your browser; your image ' +
+        'never leaves the device. **Depth Anything V2** (~50 MB, WebGPU or ' +
+        'WebAssembly via **transformers.js**) estimates a per-pixel depth map. A ' +
+        '**DIBR** warp then synthesizes the second eye view by shifting each pixel ' +
+        'horizontally in proportion to its depth ' +
+        '(`Δx = parallax · (depth − convergence)`). The two views are finally ' +
+        'merged into a **red/cyan anaglyph** using the **Dubois** colour matrix — ' +
+        'the same lineage described above. ' +
+        '[Source ↗](https://github.com/gaarutyunov/stereoscope/blob/main/converter/engine-local.js)\n\n' +
+        '**AI engine (optional).** Sends your photo to an image model on ' +
+        '**OpenRouter** together with a ' +
+        '[system prompt](https://github.com/gaarutyunov/stereoscope/blob/main/converter/engine-openrouter.js#L17) ' +
+        'that covers the full notion of anaglyph stereoscopy and instructs the ' +
+        'model to output a single finished **red/cyan anaglyph** directly — there ' +
+        'is no separate compositor step. You pay with your own credits over a ' +
+        'secure OAuth connection.',
       media: [],
-      references: [‘depthanything’, ‘transformersjs’, ‘dubois’],
+      references: ['depthanything', 'transformersjs', 'dubois'],
     },
   ],
 
@@ -161,8 +161,8 @@ export const content = {
     id: 'about',
     title: 'About: Stereoscopy Day',
     body:
-      'Built as a companion to **Stereoscopy Day** — *“Experiencia fotográfica ' +
-      'en 3D”* — held at the **Colección del Museo Ruso** in Málaga on **21 ' +
+      'Built as a companion to **Stereoscopy Day** — *"Experiencia fotográfica ' +
+      'en 3D"* — held at the **Colección del Museo Ruso** in Málaga on **21 ' +
       'June**, the date Charles Wheatstone presented his discoveries on ' +
       'stereoscopic vision to the Royal Society of London in **1838**. The day ' +
       'gathers photography historians and promoters — collector **Juan Antonio ' +
@@ -187,9 +187,9 @@ export const content = {
   references: [
     {
       id: 'wheatstone1838',
-      text: 'Charles Wheatstone, “Contributions to the Physiology of Vision — ' +
+      text: 'Charles Wheatstone, "Contributions to the Physiology of Vision — ' +
         'On Some Remarkable, and Hitherto Unobserved, Phenomena of Binocular ' +
-        'Vision,” Philosophical Transactions of the Royal Society, 1838.',
+        'Vision," Philosophical Transactions of the Royal Society, 1838.',
       url: 'https://en.wikipedia.org/wiki/Charles_Wheatstone',
     },
     {
@@ -207,7 +207,7 @@ export const content = {
     },
     {
       id: 'holmes',
-      text: 'Oliver Wendell Holmes, the unpatented open “Holmes” stereoscope ' +
+      text: 'Oliver Wendell Holmes, the unpatented open "Holmes" stereoscope ' +
         '(1859) and standardized stereo cards.',
       url: 'https://en.wikipedia.org/wiki/Stereoscope#Holmes_stereoscope',
     },
@@ -224,8 +224,8 @@ export const content = {
     },
     {
       id: 'dubois',
-      text: 'Eric Dubois, “A Projection Method to Generate Anaglyph Stereo ' +
-        'Images,” ICASSP 2001 — the red/cyan colour matrix used by default here.',
+      text: 'Eric Dubois, "A Projection Method to Generate Anaglyph Stereo ' +
+        'Images," ICASSP 2001 — the red/cyan colour matrix used by default here.',
       url: 'https://www.site.uottawa.ca/~edubois/anaglyph/',
     },
     {
@@ -258,8 +258,8 @@ export const content = {
     },
     {
       id: 'event',
-      text: 'Colección del Museo Ruso, Málaga — “Stereoscopy Day: Experiencia ' +
-        'fotográfica en 3D,” 21 June (admission free until capacity; in Spanish).',
+      text: 'Colección del Museo Ruso, Málaga — "Stereoscopy Day: Experiencia ' +
+        'fotográfica en 3D," 21 June (admission free until capacity; in Spanish).',
       url: 'https://www.coleccionmuseoruso.es/event/stereoscopy-day/',
     },
   ],
