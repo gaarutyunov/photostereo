@@ -1,34 +1,37 @@
-/* Museo Ruso default theme (CONTENT.md §5).
+/* Museo Ruso theme — aligned to the garutyunov.com design system (CONTENT.md §5).
  *
  * Theming is CSS-only: design tokens at :root, one file per exhibition. Swapping
  * exhibitions = swapping this file for another theme-<name>.css (CONTENT.md §6).
  *
- * Restrained, exhibition-appropriate, with legible long-form typography for the
- * history sections. The converter stays visually integrated yet functionally
- * independent: only --accent and --radius are forwarded to its host — the sole
- * styling coupling permitted (CONTENT.md §5). The converter keeps its own
- * (dark) internal palette; the page matches it so the card reads as integrated.
+ * These tokens mirror garutyunov.com's "terminal on pure black" palette and the
+ * Geist / Fira Mono type system, so the landing page and the converter read as a
+ * single product. The converter inherits --accent and --radius from here, the
+ * sole styling coupling permitted (CONTENT.md §5); its own dark palette already
+ * defaults to the same tokens (see converter/styles.js).
  */
 
 :root {
-  /* Brand / accent. */
-  --accent: #c9434f;          /* restrained museum red */
-  --accent-contrast: #ffffff; /* text on accent */
+  /* Brand / accent — garutyunov.com palette. */
+  --accent: #54a2ff;          /* blue (primary action / links) */
+  --accent-contrast: #000000; /* text on accent */
 
-  /* Surface palette (dark, gallery-like). */
-  --bg: #0d0e12;
-  --bg-elev: #15171d;
-  --fg: #ecedf0;
-  --muted: #9aa0ad;
-  --border: #262a33;
+  /* Surface palette (pure black, skills.sh-aligned). */
+  --bg: #000000;
+  --bg-elev: #1a1a1a;
+  --fg: #ededed;
+  --muted: #878787;
+  --border: #1a1a1a;
 
   /* Shape. */
-  --radius: 16px;
+  --radius: 6px;
 
-  /* Typography. */
-  --font-display: "Georgia", "Iowan Old Style", "Times New Roman", serif;
-  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial,
-    sans-serif;
+  /* Typography — Geist (sans) + Fira/Geist Mono, as on garutyunov.com. */
+  --font-display: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
+  --font-body: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "Geist Mono", "Fira Mono", ui-monospace, SFMono-Regular, Menlo,
+    monospace;
 
   /* Layout. */
   --max-width: 880px;

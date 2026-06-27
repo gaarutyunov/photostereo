@@ -283,7 +283,7 @@ export const content = {
     links: [
       { label: 'Build spec (SPEC.md)', url: './SPEC.md' },
       { label: 'Content spec (CONTENT.md)', url: './CONTENT.md' },
-      { label: 'Source on GitHub', url: 'https://github.com/gaarutyunov/photostereo' },
+      { label: 'Source on GitHub', url: 'https://github.com/gaarutyunov/stereoscope' },
     ],
   },
 };
