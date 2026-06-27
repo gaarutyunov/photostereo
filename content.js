@@ -33,12 +33,6 @@ export const content = {
       'Pick any existing photo and the converter builds a stereoscopic view from ' +
       'it — entirely on your device, no account required. Everything runs in your ' +
       'browser; your image never leaves it.',
-    steps: [
-      'Choose an existing photo (drag-and-drop or browse).',
-      'Pick an engine — **Local** (free, offline, on-device depth) or **AI** ' +
-        '(OpenRouter, paid with your own credits).',
-      'Get a red/cyan **anaglyph** — put on red/cyan glasses to see it pop.',
-    ],
     note:
       'In **AI mode** you can also turn 2D artwork and paintings into 3D, tune the ' +
       'depth, or make just one subject pop out while the rest stays flat.',
@@ -49,9 +43,8 @@ export const content = {
   // Editorial note (§4): the Queen-Victoria / Great-Exhibition popularization is
   // presented as the traditional, widely-repeated account (it rests largely on
   // Brewster's own telling); what is independently documented is her later
-  // purchase from Claudet (1852). A few technical figures (Stereokino screen
-  // specs; NIKFI award date/wording) are flagged in-text for a primary-source
-  // check before print.
+  // purchase from Claudet (1852). The closing "under the hood" section documents
+  // the converter's own pipeline (depth estimation → DIBR → Dubois anaglyph).
   sections: [
     {
       id: 'stereopsis',
@@ -124,32 +117,6 @@ export const content = {
       references: ['polaroid', 'viewmaster'],
     },
     {
-      id: 'wigglegram',
-      title: 'Glasses-free depth: parallax & the wigglegram',
-      body:
-        '**Motion parallax** — nearer things shifting more than far ones as the ' +
-        'viewpoint moves — is itself a depth cue. **Wiggle stereoscopy** exploits ' +
-        'it by rapidly **alternating the left and right views**: depth with **no ' +
-        'glasses**, on **any screen**, and it even works for **one-eyed ' +
-        'viewers**. The catch: it **can’t be printed**. A wiggle is the kind ' +
-        'of glasses-free output this family of tools is built to deliver.',
-      media: [],
-      references: [],
-    },
-    {
-      id: 'livephoto',
-      title: 'Live Photos / Motion Photos as wiggle 3D',
-      body:
-        'A wiggle is, technically, a **still plus a short motion clip** — exactly ' +
-        'the shape of phone "living" photos. An **Apple Live Photo** is a ' +
-        'JPEG/HEIC paired with a ~3 s MOV tied by an asset id; a **Google Motion ' +
-        'Photo** is a JPEG/HEIC with an **embedded MP4 via XMP**. A synthesized ' +
-        'parallax sweep is precisely such a clip, so a **Google Motion Photo** is ' +
-        'the closest "Live-Photo-like" artifact reproducible in a browser.',
-      media: [],
-      references: [],
-    },
-    {
       id: 'perception',
       title: 'How human depth perception works',
       body:
@@ -164,34 +131,60 @@ export const content = {
       references: ['ipd'],
     },
     {
-      id: 'soviet-cinema',
-      title: 'Russian / Soviet stereo cinema',
+      id: 'under-the-hood',
+      title: 'Under the hood: how the converter works',
       body:
-        'A natural anchor for a Russian-museum exhibition. **Semyon Ivanov** ' +
-        'developed a **parallax-barrier, glasses-free** system (Stalin Prize, ' +
-        '**1941**). Moscow’s **"Stereokino"** theatre opened to the public on ' +
-        '**4 February 1941** with *Zemlya molodosti* ("Land of Youth"), and ' +
-        '*Robinzon Kruzo* (**1947**) was an early glasses-free feature. Later, ' +
-        '**NIKFI**’s **Stereo 70** format earned an Academy Sci/Tech award.\n\n' +
-        '*(Stereokino screen specifications and the exact NIKFI award date/wording ' +
-        'should be confirmed against a primary source before print.)*',
+        'The converter ships **two interchangeable engines**, and both turn your ' +
+        'single flat photo into a stereo pair **entirely in the browser**.\n\n' +
+        '**Local engine (on-device).** It first estimates a **depth map** — how ' +
+        'far every pixel sits from the camera — with the **Depth Anything V2** ' +
+        'neural model (~50 MB) running through **transformers.js**, on your GPU via ' +
+        '**WebGPU** where available and **WebAssembly** otherwise. Nothing is ' +
+        'uploaded; your image never leaves the device. From that depth it ' +
+        'synthesizes a second eye by **depth-image-based rendering (DIBR)** — ' +
+        'shifting each pixel horizontally in proportion to its depth ' +
+        '(`Δx = parallax · (depth − convergence)`), so near things move more than ' +
+        'far ones, exactly like real **binocular disparity**. A fragment shader ' +
+        'does the warp and fills the small gaps revealed behind foreground edges.\n\n' +
+        '**AI engine (optional).** Instead of warping, an image model on ' +
+        '**OpenRouter** repaints the scene from a viewpoint shifted **~6 cm** to ' +
+        'the side — one eye’s width from the other — and naturally fills the newly ' +
+        'revealed background. You pay with your own credits over a secure OAuth ' +
+        'connection; the local result is always computed too, so you can compare ' +
+        'and keep the better one.\n\n' +
+        '**Turning the pair into 3D.** Finally the two views are merged into a ' +
+        '**red/cyan anaglyph** using the **Dubois** colour matrix, tuned to ' +
+        'minimize the ghosting and retinal rivalry that plagued older red/blue ' +
+        'methods — the same lineage described above.',
       media: [],
-      references: ['ivanov', 'stereokino', 'stereo70'],
+      references: ['depthanything', 'transformersjs', 'dubois', 'ipd'],
     },
   ],
 
   // 3.4 — About this lecture / credits.
   about: {
     id: 'about',
-    title: 'About this lecture',
+    title: 'About: Stereoscopy Day',
     body:
-      'Presented as a lecture-and-exposition companion at the **Museo Ruso de ' +
-      'Málaga**. The history sections trace stereoscopy from Wheatstone’s ' +
-      '1838 experiment to Soviet glasses-free cinema; the converter lets visitors ' +
-      'turn their own photos into 3D on the spot.',
+      'Built as a companion to **Stereoscopy Day** — *“Experiencia fotográfica ' +
+      'en 3D”* — held at the **Colección del Museo Ruso** in Málaga on **21 ' +
+      'June**, the date Charles Wheatstone presented his discoveries on ' +
+      'stereoscopic vision to the Royal Society of London in **1838**. The day ' +
+      'gathers photography historians and promoters — collector **Juan Antonio ' +
+      'Fernández Rivero**, **Pepe Zapata** (director of *Play It Again*), with ' +
+      'the **Centro de la Fotografía en Málaga** — around the idea that we still ' +
+      'marvel at images, whether printed, digital, or in three dimensions. The ' +
+      'history sections here trace stereoscopy from that 1838 experiment onward, ' +
+      'and the converter lets visitors turn their own photos into 3D on the ' +
+      'spot. Admission is free until capacity and the sessions are in Spanish — ' +
+      'see the [event page](https://www.coleccionmuseoruso.es/event/stereoscopy-day/) ' +
+      'for details.',
     credits: [
-      { label: 'Venue', value: 'Museo Ruso de Málaga' },
-      { label: 'Format', value: 'Lecture & exposition' },
+      { label: 'Event', value: 'Stereoscopy Day · Experiencia fotográfica en 3D' },
+      { label: 'Venue', value: 'Colección del Museo Ruso, Málaga' },
+      { label: 'Date', value: '21 June · 11:30–14:30' },
+      { label: 'Admission', value: 'Free until capacity' },
+      { label: 'Language', value: 'Spanish' },
     ],
   },
 
@@ -257,22 +250,22 @@ export const content = {
       url: 'https://en.wikipedia.org/wiki/Pupillary_distance',
     },
     {
-      id: 'ivanov',
-      text: 'Semyon Ivanov’s parallax-barrier glasses-free stereo cinema system ' +
-        '(Stalin Prize, 1941).',
-      url: 'https://en.wikipedia.org/wiki/Stereoscopy#History',
+      id: 'depthanything',
+      text: 'Depth Anything V2 (Small, Apache-2.0) — monocular depth estimation ' +
+        'run on-device as an fp16 ONNX model.',
+      url: 'https://github.com/DepthAnything/Depth-Anything-V2',
     },
     {
-      id: 'stereokino',
-      text: 'Moscow “Stereokino” theatre, public opening 4 Feb 1941 with Zemlya ' +
-        'molodosti; Robinzon Kruzo (1947). [Screen specs: verify primary source.]',
-      url: 'https://en.wikipedia.org/wiki/Stereo_cinema',
+      id: 'transformersjs',
+      text: 'Hugging Face Transformers.js — in-browser machine-learning runtime ' +
+        '(WebGPU / WebAssembly).',
+      url: 'https://github.com/huggingface/transformers.js',
     },
     {
-      id: 'stereo70',
-      text: 'NIKFI Stereo 70 format and its Academy Scientific/Technical ' +
-        'recognition. [Award date/wording: verify primary source.]',
-      url: 'https://en.wikipedia.org/wiki/Stereo_70',
+      id: 'event',
+      text: 'Colección del Museo Ruso, Málaga — “Stereoscopy Day: Experiencia ' +
+        'fotográfica en 3D,” 21 June (admission free until capacity; in Spanish).',
+      url: 'https://www.coleccionmuseoruso.es/event/stereoscopy-day/',
     },
   ],
 

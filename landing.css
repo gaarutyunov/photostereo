@@ -1,9 +1,11 @@
-/* Landing-page layout (CONTENT.md §3). Page-level structure only — it consumes
- * the theme tokens (theme-<name>.css) and never styles converter internals.
+/* Page layout (CONTENT.md §3). Page-level structure only — it consumes the theme
+ * tokens (theme-<name>.css) and never styles converter internals.
  *
- * The converter renders inside its own Shadow DOM, so these global rules do not
- * leak into it (CONTENT.md §2). We forward only --accent and --radius to the
- * converter host (#converter), the sole styling coupling permitted (§5).
+ * Pivot layout: the converter owns the primary page; the lecture/exhibition
+ * material lives in a right-side CURTAIN opened by a fixed bottom-right action
+ * button. The converter renders inside its own Shadow DOM, so these global rules
+ * do not leak into it (CONTENT.md §2). We forward only --accent and --radius to
+ * the converter host (#converter), the sole styling coupling permitted (§5).
  */
 
 * { box-sizing: border-box; }
@@ -45,106 +47,66 @@ a {
 }
 .skip-link:focus { left: 0; }
 
-/* ---- Hero (§3.1) -------------------------------------------------------- */
+/* ---- Sticky site header (brand + Home + source) ------------------------- */
+/* Matches garutyunov.com layout. Sits below the curtain system in the stack
+ * (toggle 40 / backdrop 45 / curtain 50) so the curtain covers it when open. */
 
-.hero {
-  padding: 72px 0 56px;
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 56px;
+  padding: 0 max(16px, env(safe-area-inset-left)) 0 max(16px, env(safe-area-inset-right));
+  background: var(--bg);
   border-bottom: 1px solid var(--border);
 }
-.hero .eyebrow {
-  font-family: var(--font-mono);
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  font-weight: 500;
-  font-size: 13px;
-  color: var(--muted);
-  margin: 0 0 18px;
+.site-header .brand {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--fg);
+  text-decoration: none;
+  transition: color 0.15s ease;
 }
-.hero h1 {
+.site-header .brand:hover { color: var(--muted); }
+.site-nav { display: flex; align-items: center; gap: 20px; }
+.site-nav a {
+  font-size: 14px;
+  color: var(--muted);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  transition: color 0.15s ease;
+}
+.site-nav a:hover { color: var(--fg); }
+.site-nav svg { width: 18px; height: 18px; display: block; }
+
+/* ---- Primary header: the converter is the headline (§3.2) --------------- */
+
+.app-header {
+  padding: 44px 0 28px;
+}
+.app-header h1 {
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: clamp(40px, 8vw, 68px);
-  line-height: 1.05;
+  font-size: clamp(34px, 6vw, 52px);
+  line-height: 1.08;
   letter-spacing: -0.02em;
   margin: 0;
 }
-.hero .subtitle {
-  font-family: var(--font-display);
-  font-size: clamp(19px, 3.2vw, 25px);
-  color: var(--fg);
-  margin: 10px 0 0;
-}
-.hero .hook {
-  max-width: 60ch;
+.app-intro {
+  max-width: 62ch;
   color: var(--muted);
   font-size: 19px;
-  margin: 22px 0 32px;
+  margin: 16px 0 0;
 }
-
-.cta {
-  display: inline-block;
-  background: var(--accent);
-  color: var(--accent-contrast);
-  font-weight: 600;
-  text-decoration: none;
-  padding: 13px 24px;
-  border-radius: var(--radius);
-  transition: filter 0.15s ease, transform 0.15s ease;
-}
-.cta:hover { filter: brightness(1.08); }
-.cta:active { transform: translateY(1px); }
-.cta:focus-visible { outline: 2px solid var(--fg); outline-offset: 3px; }
-
-/* ---- Generic section --------------------------------------------------- */
-
-section { padding: 56px 0; border-bottom: 1px solid var(--border); }
-section:last-of-type { border-bottom: 0; }
-
-section > h2 {
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: clamp(26px, 4.5vw, 36px);
-  line-height: 1.15;
-  letter-spacing: -0.02em;
-  margin: 0 0 8px;
-}
-.section-intro { color: var(--muted); max-width: 62ch; margin: 0 0 24px; }
 
 /* ---- Converter section (§3.2) ------------------------------------------ */
 
-.steps {
-  margin: 0 0 22px;
-  padding: 0;
-  list-style: none;
-  counter-reset: step;
-  display: grid;
-  gap: 12px;
-  max-width: 62ch;
-}
-.steps li {
-  counter-increment: step;
-  position: relative;
-  padding-left: 44px;
-  min-height: 30px;
-  display: flex;
-  align-items: center;
-}
-.steps li::before {
-  content: counter(step);
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: var(--bg-elev);
-  border: 1px solid var(--border);
-  color: var(--accent);
-  font-weight: 700;
-  display: grid;
-  place-items: center;
-  font-size: 14px;
-}
+.converter-section { padding: 0 0 32px; }
 
 /* The converter host. Only --accent and --radius are forwarded (CONTENT.md §5).
  * Those inherit from :root automatically. The converter ALSO happens to read
@@ -163,7 +125,7 @@ section > h2 {
 }
 
 .converter-note {
-  margin: 18px 0 0;
+  margin: 0 0 24px;
   padding: 14px 16px;
   background: var(--bg-elev);
   border: 1px solid var(--border);
@@ -173,15 +135,138 @@ section > h2 {
   color: var(--muted);
 }
 
+/* ---- Action button: bottom-right corner -------------------------------- */
+
+.curtain-toggle {
+  position: fixed;
+  right: max(20px, env(safe-area-inset-right));
+  bottom: max(20px, env(safe-area-inset-bottom));
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border: 0;
+  border-radius: 50%;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+.curtain-toggle:hover { filter: brightness(1.08); }
+.curtain-toggle:active { transform: translateY(1px); }
+.curtain-toggle:focus-visible { outline: 2px solid var(--fg); outline-offset: 3px; }
+.curtain-toggle-icon { flex: none; }
+
+/* Hide the button while the curtain is open (the curtain has its own close). */
+body.curtain-open .curtain-toggle {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px);
+}
+
+/* ---- Curtain (right-side drawer) --------------------------------------- */
+
+.curtain-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.curtain-backdrop.is-open { opacity: 1; }
+
+.curtain {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 50;
+  width: min(560px, 100%);
+  height: 100%;
+  background: var(--bg);
+  border-left: 1px solid var(--border);
+  box-shadow: -16px 0 40px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+  visibility: hidden;
+}
+.curtain.is-open {
+  transform: translateX(0);
+  visibility: visible;
+}
+
+.curtain-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.curtain-heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 19px;
+  letter-spacing: -0.01em;
+  color: var(--fg);
+}
+.curtain-close {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg-elev);
+  color: var(--fg);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.curtain-close:hover { border-color: var(--accent); }
+.curtain-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.curtain-body {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 22px 56px;
+}
+
+/* ---- Curtain sections -------------------------------------------------- */
+
+.curtain-body section { padding: 36px 0; border-bottom: 1px solid var(--border); }
+.curtain-body footer { padding: 36px 0 0; color: var(--muted); font-size: 15px; }
+
+.curtain-body section > h3,
+.curtain-body footer > h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(22px, 4vw, 28px);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin: 0 0 8px;
+}
+.curtain-body footer > h3 { font-size: 20px; color: var(--fg); }
+
 /* ---- History & science (§3.3 / §4) ------------------------------------- */
 
-.history > h2 { margin-bottom: 28px; }
+.history > h3 { margin-bottom: 22px; }
 
-.history-entry { padding: 26px 0; border-top: 1px solid var(--border); }
+.history-entry { padding: 24px 0; border-top: 1px solid var(--border); }
 .history-entry:first-of-type { border-top: 0; padding-top: 0; }
-.history-entry h3 {
+.history-entry h4 {
   font-family: var(--font-display);
-  font-size: 23px;
+  font-size: 21px;
   line-height: 1.25;
   margin: 0 0 10px;
 }
@@ -224,10 +309,8 @@ section > h2 {
 }
 .credits .v { font-weight: 600; }
 
-/* ---- Footer (§3.5) ----------------------------------------------------- */
+/* ---- Footer / references (§3.5) ---------------------------------------- */
 
-footer { padding: 48px 0 0; color: var(--muted); font-size: 15px; }
-footer h2 { font-family: var(--font-display); font-size: 20px; margin: 0 0 16px; color: var(--fg); }
 .references { margin: 0 0 28px; padding-left: 22px; display: grid; gap: 10px; }
 .references li { line-height: 1.5; }
 .references a { word-break: break-word; }
